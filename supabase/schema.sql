@@ -21,29 +21,55 @@ create table if not exists clients (
 
 create index if not exists idx_clients_full_name on clients (full_name);
 
--- ---------- 2. Дефиниция на 15-те параметъра ----------
--- Имената и типът (число/текст) се задават от Настройки в приложението.
+-- ---------- 2. Дефиниция на 15-те параметъра, в 2 групи ----------
+-- "tanita"  -> 10 параметъра (измервания от везна Tanita), отделна страница
+-- "body"    -> 5 параметъра (мерки на тялото), отделна страница
+-- Имената и типът (число/текст) се редактират от Настройки в приложението.
 create table if not exists parameters (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
   value_type  text not null check (value_type in ('number', 'text')) default 'text',
+  category    text not null check (category in ('tanita', 'body')),
   sort_order  int not null
 );
 
--- Начални 15 празни параметъра (преименувай ги от "Настройки" в приложението)
-insert into parameters (name, value_type, sort_order)
-select 'Параметър ' || n, 'text', n
-from generate_series(1, 15) as n
+-- Начални 10 параметъра за групата "Tanita измервания" (преименувай при нужда)
+insert into parameters (name, value_type, category, sort_order)
+select name, 'number', 'tanita', row_number() over ()
+from (values
+  ('Тегло (кг)'),
+  ('ИТМ (BMI)'),
+  ('Телесни мазнини (%)'),
+  ('Мускулна маса (%)'),
+  ('Костна маса (кг)'),
+  ('Вода в тялото (%)'),
+  ('Висцерални мазнини'),
+  ('Базов метаболизъм (ккал)'),
+  ('Метаболитна възраст'),
+  ('Физическа оценка')
+) as v(name)
 where not exists (select 1 from parameters);
 
+-- Начални 5 параметъра за групата "Мерки на тялото"
+insert into parameters (name, value_type, category, sort_order)
+select name, 'number', 'body', row_number() over ()
+from (values
+  ('Обиколка гърди (см)'),
+  ('Обиколка талия (см)'),
+  ('Обиколка ханш (см)'),
+  ('Обиколка ръка (см)'),
+  ('Обиколка бедро (см)')
+) as v(name)
+where not exists (select 1 from parameters where category = 'body');
+
 -- ---------- 3. История от стойности по параметър и клиент ----------
--- Всяко ново въведение създава НОВ ред (не презаписва старите), с дата и час.
+-- Всяко ново въведение създава НОВ ред (не презаписва старите), само с ДАТА (без час).
 create table if not exists parameter_entries (
   id            uuid primary key default gen_random_uuid(),
   client_id     uuid not null references clients(id) on delete cascade,
   parameter_id  uuid not null references parameters(id) on delete cascade,
   value         text,
-  recorded_at   timestamptz not null default now()
+  recorded_at   date not null default current_date
 );
 
 create index if not exists idx_entries_client_param
