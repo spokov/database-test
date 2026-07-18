@@ -2,18 +2,21 @@ import { useState } from 'react'
 
 function formatDate(iso) {
   const d = new Date(iso)
-  return d.toLocaleString('bg-BG', {
+  return d.toLocaleDateString('bg-BG', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   })
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 export default function ParameterRow({ parameter, entries, onAddValue }) {
   const [showHistory, setShowHistory] = useState(false)
   const [value, setValue] = useState('')
+  const [date, setDate] = useState(today())
   const [saving, setSaving] = useState(false)
 
   const latest = entries[0]
@@ -22,8 +25,9 @@ export default function ParameterRow({ parameter, entries, onAddValue }) {
     e.preventDefault()
     if (value === '') return
     setSaving(true)
-    await onAddValue(parameter.id, value)
+    await onAddValue(parameter.id, value, date)
     setValue('')
+    setDate(today())
     setSaving(false)
   }
 
@@ -77,6 +81,12 @@ export default function ParameterRow({ parameter, entries, onAddValue }) {
           placeholder="Нова стойност..."
           value={value}
           onChange={(e) => setValue(e.target.value)}
+        />
+        <input
+          className="input w-40"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
         />
         <button
           type="submit"
