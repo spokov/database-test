@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
-import ParameterRow from '../components/ParameterRow.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 const FIELD_LABELS = {
@@ -19,8 +18,6 @@ export default function ClientProfile() {
   const navigate = useNavigate()
 
   const [client, setClient] = useState(null)
-  const [parameters, setParameters] = useState([])
-  const [entriesByParam, setEntriesByParam] = useState({})
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
@@ -33,11 +30,11 @@ export default function ClientProfile() {
 
   async function load() {
     setLoading(true)
-    const [{ data: clientData, error: clientError }, { data: paramData }] =
-      await Promise.all([
-        supabase.from('clients').select('*').eq('id', id).single(),
-        supabase.from('parameters').select('*').order('sort_order'),
-      ])
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', id)
+      .single()
 
     if (clientError) {
       setError(clientError.message)
@@ -45,40 +42,9 @@ export default function ClientProfile() {
       return
     }
 
-    const { data: entryData } = await supabase
-      .from('parameter_entries')
-      .select('*')
-      .eq('client_id', id)
-      .order('recorded_at', { ascending: false })
-
-    const grouped = {}
-    for (const p of paramData) grouped[p.id] = []
-    for (const e of entryData || []) {
-      grouped[e.parameter_id] = grouped[e.parameter_id] || []
-      grouped[e.parameter_id].push(e)
-    }
-
     setClient(clientData)
     setForm(clientData)
-    setParameters(paramData || [])
-    setEntriesByParam(grouped)
     setLoading(false)
-  }
-
-  async function handleAddValue(parameterId, value) {
-    const { data, error } = await supabase
-      .from('parameter_entries')
-      .insert([{ client_id: id, parameter_id: parameterId, value }])
-      .select()
-      .single()
-    if (error) {
-      setError(error.message)
-      return
-    }
-    setEntriesByParam((prev) => ({
-      ...prev,
-      [parameterId]: [data, ...(prev[parameterId] || [])],
-    }))
   }
 
   async function saveEdits() {
@@ -227,14 +193,16 @@ export default function ClientProfile() {
         Параметри
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
-        {parameters.map((param) => (
-          <ParameterRow
-            key={param.id}
-            parameter={param}
-            entries={entriesByParam[param.id] || []}
-            onAddValue={handleAddValue}
-          />
-        ))}
+        <GroupCard
+          to={`/client/${id}/tanita`}
+          title="Танита измервания"
+          subtitle="10 параметъра · везна Tanita"
+        />
+        <GroupCard
+          to={`/client/${id}/body`}
+          title="Мерки на тялото"
+          subtitle="5 параметъра · обиколки"
+        />
       </div>
 
       <ConfirmDialog
@@ -245,6 +213,19 @@ export default function ClientProfile() {
         onCancel={() => setConfirmDeleteOpen(false)}
       />
     </div>
+  )
+}
+
+function GroupCard({ to, title, subtitle }) {
+  return (
+    <Link
+      to={to}
+      className="card-tab block bg-card border border-line rounded-card p-5 hover:border-ledger hover:shadow-sm transition-all"
+    >
+      <p className="font-display font-semibold text-ink text-lg">{title}</p>
+      <p className="text-sm text-ink-soft mt-1">{subtitle}</p>
+      <p className="font-mono text-xs text-ledger mt-3">Отвори →</p>
+    </Link>
   )
 }
 
