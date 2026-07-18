@@ -1,6 +1,7 @@
 import { Link, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import ClientProfile from './pages/ClientProfile.jsx'
+import ParameterGroupPage from './pages/ParameterGroupPage.jsx'
 import Settings from './pages/Settings.jsx'
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/client/:id" element={<ClientProfile />} />
+          <Route path="/client/:id/:category" element={<ParameterGroupPage />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
