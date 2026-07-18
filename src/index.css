@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #1c2333;
+}
+
+.font-display {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Index-card tab detail used on client cards and profile header */
+.card-tab {
+  position: relative;
+}
+.card-tab::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  width: 44px;
+  height: 10px;
+  background: #2e4374;
+  border-radius: 2px 2px 0 0;
+}
+
+/* Perforated / stamped divider used above the history ledger */
+.ledger-divider {
+  border-top: 1px dashed #ccc6b8;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid #DDD9CF;
+  border-radius: 2px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  background: #fff;
+  color: #1c2333;
+}
+.input:focus {
+  outline: none;
+  border-color: #2e4374;
+  box-shadow: 0 0 0 1px #2e4374;
+}
+
+::selection {
+  background: #2e4374;
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid #2e4374;
+  outline-offset: 2px;
+}
