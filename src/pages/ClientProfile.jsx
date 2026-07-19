@@ -21,6 +21,9 @@ export default function ClientProfile() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [removePhoto, setRemovePhoto] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [error, setError] = useState('')
 
@@ -48,26 +51,53 @@ export default function ClientProfile() {
   }
 
   async function saveEdits() {
-    const { data, error } = await supabase
-      .from('clients')
-      .update({
-        full_name: form.full_name,
-        address: form.address,
-        phone: form.phone,
-        email: form.email,
-        birth_date: form.birth_date || null,
-        gender: form.gender,
-        notes: form.notes,
-      })
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) {
-      setError(error.message)
-      return
+    setSaving(true)
+    setError('')
+    try {
+      let photo_url = form.photo_url
+
+      if (removePhoto) {
+        photo_url = null
+      } else if (photoFile) {
+        const ext = photoFile.name.split('.').pop()
+        const path = `${crypto.randomUUID()}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('client-photos')
+          .upload(path, photoFile)
+        if (uploadError) throw uploadError
+        const { data: publicUrl } = supabase.storage
+          .from('client-photos')
+          .getPublicUrl(path)
+        photo_url = publicUrl.publicUrl
+      }
+
+      const { data, error } = await supabase
+        .from('clients')
+        .update({
+          full_name: form.full_name,
+          address: form.address,
+          phone: form.phone,
+          email: form.email,
+          birth_date: form.birth_date || null,
+          gender: form.gender,
+          notes: form.notes,
+          photo_url,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setClient(data)
+      setForm(data)
+      setPhotoFile(null)
+      setRemovePhoto(false)
+      setEditing(false)
+    } catch (err) {
+      setError(err.message || 'Възникна грешка при запис.')
+    } finally {
+      setSaving(false)
     }
-    setClient(data)
-    setEditing(false)
   }
 
   async function handleDelete() {
@@ -90,15 +120,53 @@ export default function ClientProfile() {
 
       <div className="card-tab bg-card border border-line rounded-card p-6 mt-4">
         <div className="flex items-start gap-5">
-          {client.photo_url ? (
-            <img
-              src={client.photo_url}
-              alt={client.full_name}
-              className="w-24 h-24 rounded-card object-cover border border-line"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-card bg-ledger/10 border border-line" />
-          )}
+          <div className="flex-shrink-0">
+            {photoFile ? (
+              <img
+                src={URL.createObjectURL(photoFile)}
+                alt={form.full_name}
+                className="w-24 h-24 rounded-card object-cover border border-line"
+              />
+            ) : !removePhoto && client.photo_url ? (
+              <img
+                src={client.photo_url}
+                alt={client.full_name}
+                className="w-24 h-24 rounded-card object-cover border border-line"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-card bg-ledger/10 border border-line" />
+            )}
+            {editing && (
+              <div className="mt-2 text-center space-y-1">
+                <label className="block">
+                  <span className="text-xs font-mono text-ledger hover:underline cursor-pointer">
+                    Смени снимка
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      setPhotoFile(e.target.files?.[0] || null)
+                      setRemovePhoto(false)
+                    }}
+                  />
+                </label>
+                {(photoFile || (client.photo_url && !removePhoto)) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoFile(null)
+                      setRemovePhoto(true)
+                    }}
+                    className="text-xs font-mono text-stamp hover:underline"
+                  >
+                    Премахни снимка
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex-1">
             {editing ? (
@@ -139,13 +207,16 @@ export default function ClientProfile() {
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={saveEdits}
-                    className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark"
+                    disabled={saving}
+                    className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark disabled:opacity-50"
                   >
-                    Запази
+                    {saving ? 'Запис...' : 'Запази'}
                   </button>
                   <button
                     onClick={() => {
                       setForm(client)
+                      setPhotoFile(null)
+                      setRemovePhoto(false)
                       setEditing(false)
                     }}
                     className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink"

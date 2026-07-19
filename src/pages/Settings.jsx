@@ -37,7 +37,7 @@ export default function Settings() {
     setSavingId(param.id)
     const { error } = await supabase
       .from('parameters')
-      .update({ name: param.name, value_type: param.value_type })
+      .update({ name: param.name })
       .eq('id', param.id)
     if (error) setError(error.message)
     setSavingId(null)
@@ -57,9 +57,8 @@ export default function Settings() {
         Настройки на параметрите
       </p>
       <p className="text-sm text-ink-soft mb-6">
-        Преименувай параметрите според това, което следиш, и избери дали
-        стойността е число или текст. Съществуващата история от стойности не се
-        променя.
+        Преименувай параметрите според това, което следиш. Всички стойности са
+        числови. Съществуващата история от стойности не се променя.
       </p>
 
       {error && <p className="text-sm text-stamp mb-4">{error}</p>}
@@ -89,18 +88,6 @@ export default function Settings() {
                         onChange={(e) => updateLocal(param.id, 'name', e.target.value)}
                         placeholder="Име на параметъра"
                       />
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 pl-7">
-                      <select
-                        className="input w-36"
-                        value={param.value_type}
-                        onChange={(e) =>
-                          updateLocal(param.id, 'value_type', e.target.value)
-                        }
-                      >
-                        <option value="text">Текст</option>
-                        <option value="number">Число</option>
-                      </select>
                       <button
                         onClick={() => saveOne(param)}
                         disabled={savingId === param.id}

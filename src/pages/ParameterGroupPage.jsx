@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
-import ParameterRow from '../components/ParameterRow.jsx'
+import ParametersTable from '../components/ParametersTable.jsx'
 
 const GROUP_META = {
   tanita: { title: 'Танита измервания', subtitle: '10 параметъра от везна Tanita' },
   body: { title: 'Мерки на тялото', subtitle: '5 обиколки с шивашки метър' },
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 export default function ParameterGroupPage() {
@@ -15,7 +19,10 @@ export default function ParameterGroupPage() {
   const [client, setClient] = useState(null)
   const [parameters, setParameters] = useState([])
   const [entriesByParam, setEntriesByParam] = useState({})
+  const [newValues, setNewValues] = useState({})
+  const [date, setDate] = useState(today())
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -58,29 +65,80 @@ export default function ParameterGroupPage() {
     setClient(clientData)
     setParameters(paramData || [])
     setEntriesByParam(grouped)
+    setNewValues({})
     setLoading(false)
   }
 
-  async function handleAddValue(parameterId, value, recordedAt) {
+  function sortEntries(list) {
+    return [...list].sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
+  }
+
+  async function handleAddAll(e) {
+    e.preventDefault()
+    const rows = parameters
+      .filter((p) => (newValues[p.id] ?? '') !== '')
+      .map((p) => ({
+        client_id: id,
+        parameter_id: p.id,
+        value: newValues[p.id],
+        recorded_at: date,
+      }))
+
+    if (rows.length === 0) return
+
+    setSaving(true)
+    const { data, error } = await supabase.from('parameter_entries').insert(rows).select()
+    setSaving(false)
+
+    if (error) {
+      setError(error.message)
+      return
+    }
+
+    setEntriesByParam((prev) => {
+      const next = { ...prev }
+      for (const entry of data) {
+        next[entry.parameter_id] = sortEntries([...(next[entry.parameter_id] || []), entry])
+      }
+      return next
+    })
+    setNewValues({})
+    setDate(today())
+  }
+
+  async function handleUpdateEntry(parameterId, entryId, value) {
     const { data, error } = await supabase
       .from('parameter_entries')
-      .insert([{ client_id: id, parameter_id: parameterId, value, recorded_at: recordedAt }])
+      .update({ value })
+      .eq('id', entryId)
       .select()
       .single()
     if (error) {
       setError(error.message)
       return
     }
-    setEntriesByParam((prev) => {
-      const next = [data, ...(prev[parameterId] || [])].sort(
-        (a, b) => new Date(b.recorded_at) - new Date(a.recorded_at)
-      )
-      return { ...prev, [parameterId]: next }
-    })
+    setEntriesByParam((prev) => ({
+      ...prev,
+      [parameterId]: prev[parameterId].map((e) => (e.id === entryId ? data : e)),
+    }))
+  }
+
+  async function handleDeleteEntry(parameterId, entryId) {
+    const { error } = await supabase.from('parameter_entries').delete().eq('id', entryId)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setEntriesByParam((prev) => ({
+      ...prev,
+      [parameterId]: prev[parameterId].filter((e) => e.id !== entryId),
+    }))
   }
 
   if (!meta) return <p className="text-stamp text-sm">Непозната група параметри.</p>
   if (loading) return <p className="text-ink-soft font-mono text-sm">Зареждане...</p>
+
+  const hasAnyNewValue = parameters.some((p) => (newValues[p.id] ?? '') !== '')
 
   return (
     <div>
@@ -93,16 +151,35 @@ export default function ParameterGroupPage() {
 
       {error && <p className="text-sm text-stamp mb-4">{error}</p>}
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        {parameters.map((param) => (
-          <ParameterRow
-            key={param.id}
-            parameter={param}
-            entries={entriesByParam[param.id] || []}
-            onAddValue={handleAddValue}
+      <form onSubmit={handleAddAll}>
+        <ParametersTable
+          parameters={parameters}
+          entriesByParam={entriesByParam}
+          newValues={newValues}
+          onValueChange={(paramId, v) => setNewValues((prev) => ({ ...prev, [paramId]: v }))}
+          onUpdateEntry={(paramId, entryId, value) => handleUpdateEntry(paramId, entryId, value)}
+          onDeleteEntry={(paramId, entryId) => handleDeleteEntry(paramId, entryId)}
+        />
+
+        <div className="sticky bottom-4 mt-6 flex items-center gap-3 bg-card border border-line rounded-card p-3 shadow-sm">
+          <span className="font-mono text-xs uppercase tracking-wide text-ink-soft whitespace-nowrap">
+            Дата на измерване
+          </span>
+          <input
+            className="input w-40"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
           />
-        ))}
-      </div>
+          <button
+            type="submit"
+            disabled={saving || !hasAnyNewValue}
+            className="ml-auto px-5 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-40 whitespace-nowrap"
+          >
+            {saving ? 'Запис...' : 'Добави'}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

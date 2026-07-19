@@ -7,15 +7,21 @@ import Settings from './pages/Settings.jsx'
 export default function App() {
   return (
     <div className="min-h-screen bg-paper">
+      <Link to="/" className="block w-1/2 mx-auto">
+        <img
+          src="/banner.png"
+          alt="Believe in yourself"
+          className="w-full h-auto block"
+        />
+      </Link>
+
       <header className="border-b border-line bg-card">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-baseline gap-2">
-            <span className="font-display text-xl font-semibold text-ink">
-              Картотека
-            </span>
-            <span className="font-mono text-xs text-ink-soft tracking-wide">
-              клиентска база
-            </span>
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+          <Link
+            to="/"
+            className="font-mono text-xs uppercase tracking-wide text-ink-soft hover:text-ledger transition-colors"
+          >
+            Начало
           </Link>
           <Link
             to="/settings"
