@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
+import { useAuth } from '../lib/auth.jsx'
 import { useLanguage } from '../lib/i18n.jsx'
 import ParametersTable from '../components/ParametersTable.jsx'
 
@@ -10,7 +11,9 @@ function today() {
 
 export default function ParameterGroupPage() {
   const { t } = useLanguage()
+  const { profile } = useAuth()
   const { id, category } = useParams()
+  const readOnly = profile.role === 'client' && category === 'tanita'
 
   const GROUP_META = {
     tanita: { title: t('tanitaTitle'), subtitle: t('tanitaSubtitleLong') },
@@ -160,26 +163,29 @@ export default function ParameterGroupPage() {
           onValueChange={(paramId, v) => setNewValues((prev) => ({ ...prev, [paramId]: v }))}
           onUpdateEntry={(paramId, entryId, value) => handleUpdateEntry(paramId, entryId, value)}
           onDeleteEntry={(paramId, entryId) => handleDeleteEntry(paramId, entryId)}
+          readOnly={readOnly}
         />
 
-        <div className="sticky bottom-4 mt-6 flex flex-wrap items-center gap-3 bg-card border border-line rounded-card p-3 shadow-sm">
-          <span className="font-mono text-xs uppercase tracking-wide text-ink-soft whitespace-nowrap">
-            {t('measurementDate')}
-          </span>
-          <input
-            className="input w-40"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-          <button
-            type="submit"
-            disabled={saving || !hasAnyNewValue}
-            className="ml-auto px-5 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-40 whitespace-nowrap"
-          >
-            {saving ? t('saving') : t('addAll')}
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="sticky bottom-4 mt-6 flex flex-wrap items-center gap-3 bg-card border border-line rounded-card p-3 shadow-sm">
+            <span className="font-mono text-xs uppercase tracking-wide text-ink-soft whitespace-nowrap">
+              {t('measurementDate')}
+            </span>
+            <input
+              className="input w-40"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={saving || !hasAnyNewValue}
+              className="ml-auto px-5 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-40 whitespace-nowrap"
+            >
+              {saving ? t('saving') : t('addAll')}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   )

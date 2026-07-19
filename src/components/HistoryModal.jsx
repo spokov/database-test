@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLanguage } from '../lib/i18n.jsx'
 
-export default function HistoryModal({ open, onClose, parameters, entriesByParam, onUpdateEntry, onDeleteEntry }) {
+export default function HistoryModal({ open, onClose, parameters, entriesByParam, onUpdateEntry, onDeleteEntry, readOnly = false }) {
   const { t, formatDate } = useLanguage()
   if (!open) return null
 
@@ -68,6 +68,7 @@ export default function HistoryModal({ open, onClose, parameters, entriesByParam
                                   entry={entry}
                                   onUpdate={(value) => onUpdateEntry(param.id, entry.id, value)}
                                   onDelete={() => onDeleteEntry(param.id, entry.id)}
+                                  readOnly={readOnly}
                                 />
                               ) : (
                                 <span className="text-ink-soft/40" title={t('noValueForDate')}>
@@ -90,11 +91,15 @@ export default function HistoryModal({ open, onClose, parameters, entriesByParam
   )
 }
 
-function HistoryCell({ entry, onUpdate, onDelete }) {
+function HistoryCell({ entry, onUpdate, onDelete, readOnly }) {
   const { t } = useLanguage()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(entry.value)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  if (readOnly) {
+    return <span className="font-mono text-ink">{entry.value}</span>
+  }
 
   async function save() {
     if (value === '') return

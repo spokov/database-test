@@ -97,6 +97,34 @@ export const translations = {
     addParameter: '+ Добави параметър',
     deleteParamAria: 'Изтрий параметъра',
     deleteParamConfirm: 'Изтрий „{name}" и цялата му история?',
+
+    // auth / login
+    loginTitle: 'Вход',
+    loginSubtitle: 'Влез с имейл и парола, за да продължиш.',
+    loginPassword: 'Парола',
+    loginButton: 'Влез',
+    loginError: 'Грешен имейл или парола.',
+    signOut: 'Изход',
+    navAccounts: 'Акаунти',
+    noLinkedClient: 'Няма свързан клиентски запис към този акаунт.',
+    viewOnly: 'Само преглед',
+    noProfileYet: 'Този акаунт все още няма профил. Помоли администратор да го довърши.',
+
+    // roles
+    roleAdmin: 'Администратор',
+    roleTrainer: 'Треньор',
+    roleClient: 'Клиент',
+
+    // accounts page
+    accountsTitle: 'Акаунти',
+    accountsDescription:
+      'Създавай и управлявай акаунти на треньори и клиенти. Виждаш само акаунтите, създадени от теб (пряко или през друг треньор).',
+    newAccount: '+ Нов акаунт',
+    noAccountsYet: 'Все още няма създадени акаунти.',
+    accountRole: 'Роля',
+    accountFullName: 'Име',
+    accountClientRecordName: 'Име в картотеката (по желание)',
+    deleteAccountConfirm: 'Изтрий акаунта на „{name}"? Достъпът му ще бъде спрян незабавно.',
   },
   en: {
     // menu
@@ -192,6 +220,34 @@ export const translations = {
     addParameter: '+ Add parameter',
     deleteParamAria: 'Delete parameter',
     deleteParamConfirm: 'Delete "{name}" and all its history?',
+
+    // auth / login
+    loginTitle: 'Sign in',
+    loginSubtitle: 'Sign in with your email and password to continue.',
+    loginPassword: 'Password',
+    loginButton: 'Sign in',
+    loginError: 'Incorrect email or password.',
+    signOut: 'Sign out',
+    navAccounts: 'Accounts',
+    noLinkedClient: 'No client record is linked to this account.',
+    viewOnly: 'View only',
+    noProfileYet: 'This account has no profile yet. Ask an admin to finish setting it up.',
+
+    // roles
+    roleAdmin: 'Admin',
+    roleTrainer: 'Trainer',
+    roleClient: 'Client',
+
+    // accounts page
+    accountsTitle: 'Accounts',
+    accountsDescription:
+      'Create and manage trainer and client accounts. You only see accounts you created (directly or through another trainer).',
+    newAccount: '+ New account',
+    noAccountsYet: 'No accounts created yet.',
+    accountRole: 'Role',
+    accountFullName: 'Name',
+    accountClientRecordName: 'Client record name (optional)',
+    deleteAccountConfirm: 'Delete the account for "{name}"? Their access will be revoked immediately.',
   },
 }
 

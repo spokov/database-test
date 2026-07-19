@@ -9,6 +9,7 @@ export default function ParametersTable({
   onValueChange,
   onUpdateEntry,
   onDeleteEntry,
+  readOnly = false,
 }) {
   const { t, formatDate } = useLanguage()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -38,9 +39,11 @@ export default function ParametersTable({
               <th className="py-2 pr-4 font-mono text-xs uppercase tracking-wide text-ink-soft">
                 {t('colLatest')}
               </th>
-              <th className="py-2 pr-4 font-mono text-xs uppercase tracking-wide text-ink-soft">
-                {t('colNewValue')}
-              </th>
+              {!readOnly && (
+                <th className="py-2 pr-4 font-mono text-xs uppercase tracking-wide text-ink-soft">
+                  {t('colNewValue')}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -67,16 +70,18 @@ export default function ParametersTable({
                       <span className="text-ink-soft text-xs">—</span>
                     )}
                   </td>
-                  <td className="py-2 pr-4">
-                    <input
-                      className="input"
-                      type="number"
-                      step="any"
-                      placeholder={t('newValuePlaceholder')}
-                      value={newValues[param.id] ?? ''}
-                      onChange={(e) => onValueChange(param.id, e.target.value)}
-                    />
-                  </td>
+                  {!readOnly && (
+                    <td className="py-2 pr-4">
+                      <input
+                        className="input"
+                        type="number"
+                        step="any"
+                        placeholder={t('newValuePlaceholder')}
+                        value={newValues[param.id] ?? ''}
+                        onChange={(e) => onValueChange(param.id, e.target.value)}
+                      />
+                    </td>
+                  )}
                 </tr>
               )
             })}
@@ -91,6 +96,7 @@ export default function ParametersTable({
         entriesByParam={entriesByParam}
         onUpdateEntry={onUpdateEntry}
         onDeleteEntry={onDeleteEntry}
+        readOnly={readOnly}
       />
     </div>
   )

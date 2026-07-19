@@ -12,7 +12,7 @@ const empty = {
   notes: '',
 }
 
-export default function AddClientModal({ onClose, onCreated }) {
+export default function AddClientModal({ onClose, onCreated, ownerId }) {
   const { t } = useLanguage()
   const [form, setForm] = useState(empty)
   const [photoFile, setPhotoFile] = useState(null)
@@ -49,7 +49,7 @@ export default function AddClientModal({ onClose, onCreated }) {
 
       const { data, error: insertError } = await supabase
         .from('clients')
-        .insert([{ ...form, birth_date: form.birth_date || null, photo_url }])
+        .insert([{ ...form, birth_date: form.birth_date || null, photo_url, owner_id: ownerId }])
         .select()
         .single()
 
