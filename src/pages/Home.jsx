@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
+import { useLanguage } from '../lib/i18n.jsx'
 import ClientCard from '../components/ClientCard.jsx'
 import AddClientModal from '../components/AddClientModal.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 export default function Home() {
+  const { t } = useLanguage()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -46,10 +48,10 @@ export default function Home() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
         <input
           className="input flex-1"
-          placeholder="Търси по име, телефон, имейл или адрес..."
+          placeholder={t('searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -57,20 +59,18 @@ export default function Home() {
           onClick={() => setShowAdd(true)}
           className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors whitespace-nowrap"
         >
-          + Нов клиент
+          {t('newClient')}
         </button>
       </div>
 
       {error && <p className="text-sm text-stamp mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-ink-soft font-mono text-sm">Зареждане...</p>
+        <p className="text-ink-soft font-mono text-sm">{t('loading')}</p>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-line rounded-card">
           <p className="font-display text-ink-soft">
-            {clients.length === 0
-              ? 'Все още няма добавени клиенти.'
-              : 'Няма съвпадения за търсенето.'}
+            {clients.length === 0 ? t('noClientsYet') : t('noSearchMatches')}
           </p>
         </div>
       ) : (
@@ -93,8 +93,8 @@ export default function Home() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title={`Изтриване на ${toDelete?.full_name || ''}`}
-        message="Това ще изтрие клиента и цялата история от параметри. Действието е необратимо."
+        title={t('deleteClientTitle', { name: toDelete?.full_name || '' })}
+        message={t('deleteClientMessage')}
         onConfirm={confirmDelete}
         onCancel={() => setToDelete(null)}
       />

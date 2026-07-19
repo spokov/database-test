@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useLanguage } from '../lib/i18n.jsx'
 
 function initials(name = '') {
   return name
@@ -17,6 +18,7 @@ function calcAge(birthDate) {
 }
 
 export default function ClientCard({ client, onDelete }) {
+  const { t, genderLabel } = useLanguage()
   const age = calcAge(client.birth_date)
 
   return (
@@ -27,7 +29,7 @@ export default function ClientCard({ client, onDelete }) {
       {onDelete && (
         <button
           type="button"
-          aria-label="Изтрий клиент"
+          aria-label={t('deleteClientAria')}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -57,10 +59,12 @@ export default function ClientCard({ client, onDelete }) {
             {client.full_name}
           </p>
           <p className="font-mono text-xs text-ink-soft mt-1">
-            {[age ? `${age} г.` : null, client.gender].filter(Boolean).join(' · ') || '—'}
+            {[age ? `${age}${t('ageSuffix')}` : null, genderLabel(client.gender)]
+              .filter(Boolean)
+              .join(' · ') || '—'}
           </p>
           <p className="text-sm text-ink-soft truncate mt-1">
-            {client.phone || client.email || 'Няма контакти'}
+            {client.phone || client.email || t('noContacts')}
           </p>
         </div>
       </div>

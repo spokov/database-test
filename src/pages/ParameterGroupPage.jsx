@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
+import { useLanguage } from '../lib/i18n.jsx'
 import ParametersTable from '../components/ParametersTable.jsx'
-
-const GROUP_META = {
-  tanita: { title: 'Танита измервания', subtitle: '10 параметъра от везна Tanita' },
-  body: { title: 'Мерки на тялото', subtitle: '5 обиколки с шивашки метър' },
-}
 
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
 export default function ParameterGroupPage() {
+  const { t } = useLanguage()
   const { id, category } = useParams()
+
+  const GROUP_META = {
+    tanita: { title: t('tanitaTitle'), subtitle: t('tanitaSubtitleLong') },
+    body: { title: t('bodyTitle'), subtitle: t('bodySubtitleLong') },
+  }
   const meta = GROUP_META[category]
 
   const [client, setClient] = useState(null)
@@ -135,18 +137,17 @@ export default function ParameterGroupPage() {
     }))
   }
 
-  if (!meta) return <p className="text-stamp text-sm">Непозната група параметри.</p>
-  if (loading) return <p className="text-ink-soft font-mono text-sm">Зареждане...</p>
+  if (!meta) return <p className="text-stamp text-sm">{t('unknownGroup')}</p>
+  if (loading) return <p className="text-ink-soft font-mono text-sm">{t('loading')}</p>
 
   const hasAnyNewValue = parameters.some((p) => (newValues[p.id] ?? '') !== '')
 
   return (
     <div>
-      <Link to={`/client/${id}`} className="text-sm text-ink-soft hover:text-ledger">
-        ← Обратно към профила на {client?.full_name}
-      </Link>
-
-      <p className="font-display text-xl font-semibold text-ink mt-4">{meta.title}</p>
+      <p className="font-mono text-xs uppercase tracking-wide text-ink-soft mt-2">
+        {client?.full_name}
+      </p>
+      <p className="font-display text-xl font-semibold text-ink mt-1">{meta.title}</p>
       <p className="text-sm text-ink-soft mb-6">{meta.subtitle}</p>
 
       {error && <p className="text-sm text-stamp mb-4">{error}</p>}
@@ -161,9 +162,9 @@ export default function ParameterGroupPage() {
           onDeleteEntry={(paramId, entryId) => handleDeleteEntry(paramId, entryId)}
         />
 
-        <div className="sticky bottom-4 mt-6 flex items-center gap-3 bg-card border border-line rounded-card p-3 shadow-sm">
+        <div className="sticky bottom-4 mt-6 flex flex-wrap items-center gap-3 bg-card border border-line rounded-card p-3 shadow-sm">
           <span className="font-mono text-xs uppercase tracking-wide text-ink-soft whitespace-nowrap">
-            Дата на измерване
+            {t('measurementDate')}
           </span>
           <input
             className="input w-40"
@@ -176,7 +177,7 @@ export default function ParameterGroupPage() {
             disabled={saving || !hasAnyNewValue}
             className="ml-auto px-5 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-40 whitespace-nowrap"
           >
-            {saving ? 'Запис...' : 'Добави'}
+            {saving ? t('saving') : t('addAll')}
           </button>
         </div>
       </form>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
+import { useLanguage } from '../lib/i18n.jsx'
 
 const empty = {
   full_name: '',
@@ -12,6 +13,7 @@ const empty = {
 }
 
 export default function AddClientModal({ onClose, onCreated }) {
+  const { t } = useLanguage()
   const [form, setForm] = useState(empty)
   const [photoFile, setPhotoFile] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -24,7 +26,7 @@ export default function AddClientModal({ onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.full_name.trim()) {
-      setError('Името е задължително.')
+      setError(t('nameRequired'))
       return
     }
     setSaving(true)
@@ -54,7 +56,7 @@ export default function AddClientModal({ onClose, onCreated }) {
       if (insertError) throw insertError
       onCreated(data)
     } catch (err) {
-      setError(err.message || 'Възникна грешка при запис.')
+      setError(err.message || t('genericSaveError'))
     } finally {
       setSaving(false)
     }
@@ -64,11 +66,11 @@ export default function AddClientModal({ onClose, onCreated }) {
     <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto">
       <div className="bg-card border border-line rounded-card p-6 max-w-lg w-full">
         <p className="font-display font-semibold text-ink text-lg mb-4">
-          Нов клиент
+          {t('newClientTitle')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Field label="Име и фамилия *">
+          <Field label={t('fieldFullName')}>
             <input
               className="input"
               value={form.full_name}
@@ -77,15 +79,15 @@ export default function AddClientModal({ onClose, onCreated }) {
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Телефон">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label={t('fieldPhone')}>
               <input
                 className="input"
                 value={form.phone}
                 onChange={(e) => update('phone', e.target.value)}
               />
             </Field>
-            <Field label="Имейл">
+            <Field label={t('fieldEmail')}>
               <input
                 className="input"
                 type="email"
@@ -95,7 +97,7 @@ export default function AddClientModal({ onClose, onCreated }) {
             </Field>
           </div>
 
-          <Field label="Адрес">
+          <Field label={t('fieldAddress')}>
             <input
               className="input"
               value={form.address}
@@ -103,8 +105,8 @@ export default function AddClientModal({ onClose, onCreated }) {
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Дата на раждане">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label={t('fieldBirthDate')}>
               <input
                 className="input"
                 type="date"
@@ -112,21 +114,21 @@ export default function AddClientModal({ onClose, onCreated }) {
                 onChange={(e) => update('birth_date', e.target.value)}
               />
             </Field>
-            <Field label="Пол">
+            <Field label={t('fieldGender')}>
               <select
                 className="input"
                 value={form.gender}
                 onChange={(e) => update('gender', e.target.value)}
               >
                 <option value="">—</option>
-                <option value="Мъж">Мъж</option>
-                <option value="Жена">Жена</option>
-                <option value="Друго">Друго</option>
+                <option value="Мъж">{t('genderMale')}</option>
+                <option value="Жена">{t('genderFemale')}</option>
+                <option value="Друго">{t('genderOther')}</option>
               </select>
             </Field>
           </div>
 
-          <Field label="Снимка">
+          <Field label={t('fieldPhoto')}>
             <input
               className="text-sm"
               type="file"
@@ -135,7 +137,7 @@ export default function AddClientModal({ onClose, onCreated }) {
             />
           </Field>
 
-          <Field label="Бележки">
+          <Field label={t('fieldNotes')}>
             <textarea
               className="input"
               rows={2}
@@ -152,14 +154,14 @@ export default function AddClientModal({ onClose, onCreated }) {
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink transition-colors"
             >
-              Отказ
+              {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-50"
             >
-              {saving ? 'Запис...' : 'Запази клиент'}
+              {saving ? t('saving') : t('saveClient')}
             </button>
           </div>
         </form>

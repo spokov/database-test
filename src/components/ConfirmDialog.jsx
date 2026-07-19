@@ -1,4 +1,7 @@
+import { useLanguage } from '../lib/i18n.jsx'
+
 export default function ConfirmDialog({ open, title, message, onConfirm, onCancel }) {
+  const { t } = useLanguage()
   if (!open) return null
   return (
     <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">
@@ -10,13 +13,13 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
             onClick={onCancel}
             className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink transition-colors"
           >
-            Отказ
+            {t('cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="px-4 py-2 text-sm font-medium bg-stamp text-white rounded-card hover:bg-stamp/90 transition-colors"
           >
-            Изтрий
+            {t('delete')}
           </button>
         </div>
       </div>
