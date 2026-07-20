@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { useLanguage } from '../lib/i18n.jsx'
+import { callManageAccount } from '../lib/manageAccount.js'
 import ClientCard from '../components/ClientCard.jsx'
 import AddClientModal from '../components/AddClientModal.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -40,9 +41,21 @@ export default function Home() {
   }, [clients, query])
 
   async function confirmDelete() {
+    const clientUserId = toDelete.user_id
     const { error } = await supabase.from('clients').delete().eq('id', toDelete.id)
-    if (error) setError(error.message)
-    else setClients((cs) => cs.filter((c) => c.id !== toDelete.id))
+    if (error) {
+      setError(error.message)
+      setToDelete(null)
+      return
+    }
+    setClients((cs) => cs.filter((c) => c.id !== toDelete.id))
+    if (clientUserId) {
+      try {
+        await callManageAccount({ action: 'delete', user_id: clientUserId })
+      } catch (err) {
+        setError(err.message)
+      }
+    }
     setToDelete(null)
   }
 

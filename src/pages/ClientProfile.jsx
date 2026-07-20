@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
 import { useLanguage } from '../lib/i18n.jsx'
+import { callManageAccount } from '../lib/manageAccount.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 export default function ClientProfile() {
@@ -103,10 +104,18 @@ export default function ClientProfile() {
   }
 
   async function handleDelete() {
+    const clientUserId = client.user_id
     const { error } = await supabase.from('clients').delete().eq('id', id)
     if (error) {
       setError(error.message)
       return
+    }
+    if (clientUserId) {
+      try {
+        await callManageAccount({ action: 'delete', user_id: clientUserId })
+      } catch (err) {
+        setError(err.message)
+      }
     }
     navigate('/')
   }

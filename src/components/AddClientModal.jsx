@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { useLanguage } from '../lib/i18n.jsx'
-import { isValidUsername } from '../lib/username.js'
+import { generateUsernamePreview } from '../lib/username.js'
 import { callManageAccount } from '../lib/manageAccount.js'
 
 const empty = {
-  full_name: '',
+  first_name: '',
+  last_name: '',
   address: '',
   phone: '',
   email: '',
@@ -17,11 +18,13 @@ const empty = {
 export default function AddClientModal({ onClose, onCreated }) {
   const { t } = useLanguage()
   const [form, setForm] = useState(empty)
-  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [createdInfo, setCreatedInfo] = useState(null)
+
+  const usernamePreview = generateUsernamePreview(form.first_name, form.last_name)
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -29,26 +32,20 @@ export default function AddClientModal({ onClose, onCreated }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.full_name.trim()) {
+    if (!form.first_name.trim() || !form.last_name.trim()) {
       setError(t('nameRequired'))
-      return
-    }
-    if (!isValidUsername(username)) {
-      setError(t('usernameInvalid'))
       return
     }
     setSaving(true)
     setError('')
     try {
-      // Creates the login account (client role) AND a bare client record
-      // linked to it, in one step - this is what the client will use to
-      // log in and see their own measurements.
-      const { client_id } = await callManageAccount({
+      // Creates the login account (client role, username auto-generated
+      // from the name) AND a bare client record linked to it, in one step.
+      const { client_id, username } = await callManageAccount({
         action: 'create',
         role: 'client',
-        full_name: form.full_name,
-        client_full_name: form.full_name,
-        username,
+        first_name: form.first_name,
+        last_name: form.last_name,
         password,
       })
 
@@ -84,12 +81,37 @@ export default function AddClientModal({ onClose, onCreated }) {
         .single()
 
       if (updateError) throw updateError
-      onCreated(data)
+      setCreatedInfo({ client: data, username })
     } catch (err) {
       setError(err.message || t('genericSaveError'))
     } finally {
       setSaving(false)
     }
+  }
+
+  if (createdInfo) {
+    return (
+      <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto">
+        <div className="bg-card border border-line rounded-card p-6 max-w-md w-full">
+          <p className="font-display font-semibold text-ink text-lg mb-1">
+            {t('clientCreatedTitle')}
+          </p>
+          <p className="text-sm text-ink-soft mb-4">{t('clientCreatedSubtitle')}</p>
+          <div className="bg-paper border border-line rounded-card p-3 mb-4">
+            <p className="text-xs font-mono uppercase tracking-wide text-ink-soft">
+              {t('fieldUsername')}
+            </p>
+            <p className="font-mono text-ink text-lg">{createdInfo.username}</p>
+          </div>
+          <button
+            onClick={() => onCreated(createdInfo.client)}
+            className="w-full px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors"
+          >
+            {t('done')}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -100,14 +122,23 @@ export default function AddClientModal({ onClose, onCreated }) {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Field label={t('fieldFullName')}>
-            <input
-              className="input"
-              value={form.full_name}
-              onChange={(e) => update('full_name', e.target.value)}
-              autoFocus
-            />
-          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label={t('fieldFirstName')}>
+              <input
+                className="input"
+                value={form.first_name}
+                onChange={(e) => update('first_name', e.target.value)}
+                autoFocus
+              />
+            </Field>
+            <Field label={t('fieldLastName')}>
+              <input
+                className="input"
+                value={form.last_name}
+                onChange={(e) => update('last_name', e.target.value)}
+              />
+            </Field>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label={t('fieldPhone')}>
@@ -183,12 +214,10 @@ export default function AddClientModal({ onClose, onCreated }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label={t('fieldUsername')}>
                 <input
-                  className="input"
+                  className="input bg-paper text-ink-soft"
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="ivan.petrov"
-                  required
+                  value={usernamePreview || '—'}
+                  readOnly
                 />
               </Field>
               <Field label={t('loginPassword')}>
@@ -202,7 +231,7 @@ export default function AddClientModal({ onClose, onCreated }) {
                 />
               </Field>
             </div>
-            <span className="block text-xs text-ink-soft mt-1">{t('usernameHelp')}</span>
+            <span className="block text-xs text-ink-soft mt-1">{t('usernameAutoHelp')}</span>
           </div>
 
           {error && <p className="text-sm text-stamp">{error}</p>}

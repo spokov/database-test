@@ -109,13 +109,15 @@ export default function Accounts() {
                   >
                     🔑
                   </button>
-                  <button
-                    onClick={() => setConfirmDeleteId(a.id)}
-                    aria-label={t('delete')}
-                    className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-stamp hover:bg-stamp/10 rounded-card transition-colors"
-                  >
-                    ×
-                  </button>
+                  {a.role !== 'client' && (
+                    <button
+                      onClick={() => setConfirmDeleteId(a.id)}
+                      aria-label={t('delete')}
+                      className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-stamp hover:bg-stamp/10 rounded-card transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -181,9 +183,8 @@ export default function Accounts() {
 
 function CreateAccountModal({ canCreateAdmin, onClose, onCreated }) {
   const { t } = useLanguage()
-  const [role, setRole] = useState('client')
+  const [role, setRole] = useState('trainer')
   const [fullName, setFullName] = useState('')
-  const [clientFullName, setClientFullName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
@@ -202,7 +203,6 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated }) {
         action: 'create',
         role,
         full_name: fullName,
-        client_full_name: role === 'client' ? clientFullName || fullName : undefined,
         username,
         password,
       })
@@ -227,7 +227,6 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated }) {
               {t('accountRole')}
             </span>
             <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="client">{t('roleClient')}</option>
               <option value="trainer">{t('roleTrainer')}</option>
               {canCreateAdmin && <option value="admin">{t('roleAdmin')}</option>}
             </select>
@@ -239,20 +238,6 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated }) {
             </span>
             <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </label>
-
-          {role === 'client' && (
-            <label className="block">
-              <span className="block text-xs font-mono uppercase tracking-wide text-ink-soft mb-1">
-                {t('accountClientRecordName')}
-              </span>
-              <input
-                className="input"
-                value={clientFullName}
-                onChange={(e) => setClientFullName(e.target.value)}
-                placeholder={fullName}
-              />
-            </label>
-          )}
 
           <label className="block">
             <span className="block text-xs font-mono uppercase tracking-wide text-ink-soft mb-1">

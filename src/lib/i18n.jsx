@@ -118,7 +118,7 @@ export const translations = {
     // accounts page
     accountsTitle: 'Акаунти',
     accountsDescription:
-      'Създавай и управлявай акаунти на треньори и клиенти. Виждаш само акаунтите, създадени от теб (пряко или през друг треньор).',
+      'Създавай и управлявай треньорски акаунти. Клиентски акаунти се създават автоматично от "+ Нов клиент". Виждаш само акаунтите, създадени от теб (пряко или през друг треньор).',
     newAccount: '+ Нов акаунт',
     noAccountsYet: 'Все още няма създадени акаунти.',
     accountRole: 'Роля',
@@ -138,6 +138,13 @@ export const translations = {
     changeRoleToTrainerWarning:
       'Този акаунт ще стане треньор. Собственият му клиентски запис (данни и история) се запазва, но вече не е свързан с акаунт за вход.',
     clientLoginSectionTitle: 'Вход за клиента',
+    fieldFirstName: 'Име',
+    fieldLastName: 'Фамилия',
+    usernameAutoHelp:
+      'Потребителското име се генерира автоматично от името на клиента и не може да се променя тук.',
+    clientCreatedTitle: 'Клиентът е създаден',
+    clientCreatedSubtitle: 'Дай на клиента това потребителско име и паролата, която зададе, за да влезе в сайта.',
+    done: 'Готово',
   },
   en: {
     // menu
@@ -254,7 +261,7 @@ export const translations = {
     // accounts page
     accountsTitle: 'Accounts',
     accountsDescription:
-      'Create and manage trainer and client accounts. You only see accounts you created (directly or through another trainer).',
+      'Create and manage trainer accounts. Client accounts are created automatically from "+ New client". You only see accounts you created (directly or through another trainer).',
     newAccount: '+ New account',
     noAccountsYet: 'No accounts created yet.',
     accountRole: 'Role',
@@ -274,6 +281,13 @@ export const translations = {
     changeRoleToTrainerWarning:
       'This account will become a trainer. Its own client record (data and history) is kept, but is no longer linked to a login.',
     clientLoginSectionTitle: 'Client login',
+    fieldFirstName: 'First name',
+    fieldLastName: 'Last name',
+    usernameAutoHelp:
+      "The username is generated automatically from the client's name and can't be changed here.",
+    clientCreatedTitle: 'Client created',
+    clientCreatedSubtitle: 'Give the client this username and the password you set so they can log in.',
+    done: 'Done',
   },
 }
 

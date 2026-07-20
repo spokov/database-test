@@ -22,8 +22,44 @@ const CORS_HEADERS = {
 const SYNTHETIC_DOMAIN = 'clientdb.local'
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,40}$/
 
+const CYRILLIC_TO_LATIN = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ж: 'zh', з: 'z', и: 'i',
+  й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's',
+  т: 't', у: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sht',
+  ъ: 'a', ь: 'y', ю: 'yu', я: 'ya',
+}
+
+function transliterate(text) {
+  return (text || '')
+    .toLowerCase()
+    .split('')
+    .map((ch) => CYRILLIC_TO_LATIN[ch] ?? ch)
+    .join('')
+    .replace(/[^a-z0-9.-]/g, '')
+}
+
 function usernameToEmail(username) {
   return `${username.trim().toLowerCase()}@${SYNTHETIC_DOMAIN}`
+}
+
+// Builds "first.last" from the client's name and appends a number if that
+// exact username is already taken, e.g. "ivan.petrov", "ivan.petrov2", ...
+async function generateUniqueUsername(adminClient, firstName, lastName) {
+  const first = transliterate(firstName)
+  const last = transliterate(lastName)
+  const base = [first, last].filter(Boolean).join('.') || 'client'
+
+  let candidate = base
+  for (let suffix = 2; suffix <= 50; suffix++) {
+    const { data: existing } = await adminClient
+      .from('profiles')
+      .select('id')
+      .ilike('username', candidate)
+      .maybeSingle()
+    if (!existing) return candidate
+    candidate = `${base}${suffix}`
+  }
+  throw new Error('Could not generate a unique username')
 }
 
 function json(body, status = 200) {
@@ -180,16 +216,10 @@ Deno.serve(async (req) => {
     }
 
     // action === 'create' (default)
-    const { username, password, full_name, role, client_full_name } = body
+    const { username, password, full_name, role, first_name, last_name } = body
 
-    if (!username || !password || !role) {
+    if (!password || !role) {
       return json({ error: 'Missing required fields' }, 400)
-    }
-    if (!USERNAME_PATTERN.test(username.trim())) {
-      return json(
-        { error: 'Username must be 3-40 characters: letters, digits, dot, underscore, hyphen' },
-        400
-      )
     }
     if (!['trainer', 'client', 'admin'].includes(role)) {
       return json({ error: 'Invalid role' }, 400)
@@ -198,7 +228,27 @@ Deno.serve(async (req) => {
       return json({ error: 'Trainers cannot create admin accounts' }, 403)
     }
 
-    const email = usernameToEmail(username)
+    let finalUsername
+    let clientFullName
+
+    if (role === 'client') {
+      if (!first_name || !last_name) {
+        return json({ error: 'Missing first_name/last_name' }, 400)
+      }
+      finalUsername = await generateUniqueUsername(adminClient, first_name, last_name)
+      clientFullName = `${first_name.trim()} ${last_name.trim()}`.trim()
+    } else {
+      if (!username) return json({ error: 'Missing username' }, 400)
+      if (!USERNAME_PATTERN.test(username.trim())) {
+        return json(
+          { error: 'Username must be 3-40 characters: letters, digits, dot, underscore, hyphen' },
+          400
+        )
+      }
+      finalUsername = username.trim()
+    }
+
+    const email = usernameToEmail(finalUsername)
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
@@ -212,8 +262,8 @@ Deno.serve(async (req) => {
     const { error: profileError } = await adminClient.from('profiles').insert({
       id: newUserId,
       role,
-      full_name: full_name || null,
-      username: username.trim(),
+      full_name: full_name || clientFullName || null,
+      username: finalUsername,
       email,
       created_by: caller.id,
     })
@@ -227,7 +277,7 @@ Deno.serve(async (req) => {
       const { data: clientRow, error: clientError } = await adminClient
         .from('clients')
         .insert({
-          full_name: client_full_name || full_name || username,
+          full_name: clientFullName,
           owner_id: caller.id,
           user_id: newUserId,
         })
@@ -237,7 +287,7 @@ Deno.serve(async (req) => {
       newClientId = clientRow.id
     }
 
-    return json({ ok: true, user_id: newUserId, client_id: newClientId })
+    return json({ ok: true, user_id: newUserId, client_id: newClientId, username: finalUsername })
   } catch (err) {
     return json({ error: err.message || 'Unexpected error' }, 400)
   }
