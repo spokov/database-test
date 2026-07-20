@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { useAuth } from '../lib/auth.jsx'
 import { useLanguage } from '../lib/i18n.jsx'
 import ClientCard from '../components/ClientCard.jsx'
 import AddClientModal from '../components/AddClientModal.jsx'
@@ -8,7 +7,6 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 export default function Home() {
   const { t } = useLanguage()
-  const { profile } = useAuth()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -85,7 +83,6 @@ export default function Home() {
 
       {showAdd && (
         <AddClientModal
-          ownerId={profile.id}
           onClose={() => setShowAdd(false)}
           onCreated={(client) => {
             setClients((cs) => [client, ...cs])

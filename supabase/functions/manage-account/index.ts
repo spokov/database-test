@@ -110,6 +110,75 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
+    if (body.action === 'change_role') {
+      const { user_id, new_role } = body
+      if (!user_id || !new_role) return json({ error: 'Missing fields' }, 400)
+      if (!['trainer', 'client'].includes(new_role)) {
+        return json({ error: 'Can only switch between trainer and client' }, 400)
+      }
+
+      const allowed = await canManage(adminClient, callerProfile.role, caller.id, user_id)
+      if (!allowed) return json({ error: 'Not allowed to change this account' }, 403)
+
+      const { data: target, error: targetError } = await adminClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user_id)
+        .single()
+      if (targetError) throw targetError
+      if (target.role === 'admin') {
+        return json({ error: 'Cannot change the role of an admin account' }, 403)
+      }
+      if (target.role === new_role) {
+        return json({ ok: true }) // no-op
+      }
+
+      if (new_role === 'client') {
+        // This account was a trainer: hand its clients over to ITS OWN
+        // trainer/creator, then make sure the account itself has exactly
+        // one linked client record (its own), owned by that same creator.
+        const newOwner = target.created_by || caller.id
+
+        const { error: reassignError } = await adminClient
+          .from('clients')
+          .update({ owner_id: newOwner })
+          .eq('owner_id', user_id)
+        if (reassignError) throw reassignError
+
+        const { data: existingOwnClient } = await adminClient
+          .from('clients')
+          .select('id')
+          .eq('user_id', user_id)
+          .maybeSingle()
+
+        if (!existingOwnClient) {
+          const { error: createClientError } = await adminClient.from('clients').insert({
+            full_name: target.full_name || target.username,
+            owner_id: newOwner,
+            user_id: user_id,
+          })
+          if (createClientError) throw createClientError
+        }
+      } else {
+        // new_role === 'trainer': this account was a client - unlink its
+        // own client record (kept intact, just no longer "is" this account)
+        // so the historical data is never lost.
+        const { error: unlinkError } = await adminClient
+          .from('clients')
+          .update({ user_id: null })
+          .eq('user_id', user_id)
+        if (unlinkError) throw unlinkError
+      }
+
+      const { error: roleError } = await adminClient
+        .from('profiles')
+        .update({ role: new_role })
+        .eq('id', user_id)
+      if (roleError) throw roleError
+
+      return json({ ok: true })
+    }
+
     // action === 'create' (default)
     const { username, password, full_name, role, client_full_name } = body
 

@@ -131,6 +131,13 @@ export const translations = {
     changePassword: 'Смени парола',
     newPassword: 'Нова парола',
     passwordChanged: 'Паролата е сменена успешно.',
+    changeRole: 'Смени роля',
+    confirm: 'Потвърди',
+    changeRoleToClientWarning:
+      'Този акаунт ще стане клиент. Ако в момента управлява клиенти, те ще преминат под неговия треньор, а самият той ще остане само със собствения си клиентски запис. Нищо не се изтрива.',
+    changeRoleToTrainerWarning:
+      'Този акаунт ще стане треньор. Собственият му клиентски запис (данни и история) се запазва, но вече не е свързан с акаунт за вход.',
+    clientLoginSectionTitle: 'Вход за клиента',
   },
   en: {
     // menu
@@ -260,6 +267,13 @@ export const translations = {
     changePassword: 'Change password',
     newPassword: 'New password',
     passwordChanged: 'Password changed successfully.',
+    changeRole: 'Change role',
+    confirm: 'Confirm',
+    changeRoleToClientWarning:
+      "This account will become a client. If it currently manages clients, they'll move to its own trainer, and it will keep only its own client record. Nothing is deleted.",
+    changeRoleToTrainerWarning:
+      'This account will become a trainer. Its own client record (data and history) is kept, but is no longer linked to a login.',
+    clientLoginSectionTitle: 'Client login',
   },
 }
 

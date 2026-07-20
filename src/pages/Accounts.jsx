@@ -3,28 +3,12 @@ import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../lib/auth.jsx'
 import { useLanguage } from '../lib/i18n.jsx'
 import { isValidUsername } from '../lib/username.js'
+import { callManageAccount } from '../lib/manageAccount.js'
 
 const ROLE_LABELS_KEY = {
   admin: 'roleAdmin',
   trainer: 'roleTrainer',
   client: 'roleClient',
-}
-
-async function callFunction(body) {
-  const { data: sessionData } = await supabase.auth.getSession()
-  const token = sessionData.session?.access_token
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-account`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(body),
-  })
-  const json = await res.json()
-  if (!res.ok) throw new Error(json.error || 'Request failed')
-  return json
 }
 
 export default function Accounts() {
@@ -38,6 +22,7 @@ export default function Accounts() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [passwordTargetId, setPasswordTargetId] = useState(null)
+  const [roleTargetId, setRoleTargetId] = useState(null)
 
   useEffect(() => {
     load()
@@ -57,7 +42,7 @@ export default function Accounts() {
   async function handleDelete(id) {
     setDeletingId(id)
     try {
-      await callFunction({ action: 'delete', user_id: id })
+      await callManageAccount({ action: 'delete', user_id: id })
       setAccounts((a) => a.filter((x) => x.id !== id))
       setConfirmDeleteId(null)
     } catch (err) {
@@ -68,6 +53,7 @@ export default function Accounts() {
   }
 
   const passwordTarget = accounts.find((a) => a.id === passwordTargetId)
+  const roleTarget = accounts.find((a) => a.id === roleTargetId)
 
   return (
     <div>
@@ -105,6 +91,16 @@ export default function Accounts() {
                   {t(ROLE_LABELS_KEY[a.role] || a.role)}
                 </span>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {a.role !== 'admin' && (
+                    <button
+                      onClick={() => setRoleTargetId(a.id)}
+                      aria-label={t('changeRole')}
+                      title={t('changeRole')}
+                      className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-ledger hover:bg-ledger/10 rounded-card transition-colors"
+                    >
+                      ⇄
+                    </button>
+                  )}
                   <button
                     onClick={() => setPasswordTargetId(a.id)}
                     aria-label={t('changePassword')}
@@ -168,6 +164,17 @@ export default function Accounts() {
           onDone={() => setPasswordTargetId(null)}
         />
       )}
+
+      {roleTarget && (
+        <ChangeRoleModal
+          account={roleTarget}
+          onClose={() => setRoleTargetId(null)}
+          onDone={() => {
+            setRoleTargetId(null)
+            load()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -191,7 +198,7 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated }) {
     setSaving(true)
     setError('')
     try {
-      await callFunction({
+      await callManageAccount({
         action: 'create',
         role,
         full_name: fullName,
@@ -312,7 +319,7 @@ function ChangePasswordModal({ account, onClose, onDone }) {
     setSaving(true)
     setError('')
     try {
-      await callFunction({ action: 'reset_password', user_id: account.id, new_password: password })
+      await callManageAccount({ action: 'reset_password', user_id: account.id, new_password: password })
       setDone(true)
     } catch (err) {
       setError(err.message)
@@ -376,6 +383,60 @@ function ChangePasswordModal({ account, onClose, onDone }) {
             </div>
           </form>
         )}
+      </div>
+    </div>
+  )
+}
+
+function ChangeRoleModal({ account, onClose, onDone }) {
+  const { t } = useLanguage()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const newRole = account.role === 'trainer' ? 'client' : 'trainer'
+
+  async function handleConfirm() {
+    setSaving(true)
+    setError('')
+    try {
+      await callManageAccount({ action: 'change_role', user_id: account.id, new_role: newRole })
+      onDone()
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto">
+      <div className="bg-card border border-line rounded-card p-6 max-w-sm w-full">
+        <p className="font-display font-semibold text-ink text-lg mb-1">
+          {t('changeRole')}
+        </p>
+        <p className="text-sm text-ink-soft mb-4">@{account.username}</p>
+
+        <p className="text-sm text-ink mb-4">
+          {newRole === 'client' ? t('changeRoleToClientWarning') : t('changeRoleToTrainerWarning')}
+        </p>
+
+        {error && <p className="text-sm text-stamp mb-3">{error}</p>}
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink transition-colors"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={saving}
+            className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-50"
+          >
+            {saving ? t('saving') : t('confirm')}
+          </button>
+        </div>
       </div>
     </div>
   )

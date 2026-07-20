@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { useLanguage } from '../lib/i18n.jsx'
+import { isValidUsername } from '../lib/username.js'
+import { callManageAccount } from '../lib/manageAccount.js'
 
 const empty = {
   full_name: '',
@@ -12,9 +14,11 @@ const empty = {
   notes: '',
 }
 
-export default function AddClientModal({ onClose, onCreated, ownerId }) {
+export default function AddClientModal({ onClose, onCreated }) {
   const { t } = useLanguage()
   const [form, setForm] = useState(empty)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -29,11 +33,26 @@ export default function AddClientModal({ onClose, onCreated, ownerId }) {
       setError(t('nameRequired'))
       return
     }
+    if (!isValidUsername(username)) {
+      setError(t('usernameInvalid'))
+      return
+    }
     setSaving(true)
     setError('')
     try {
-      let photo_url = null
+      // Creates the login account (client role) AND a bare client record
+      // linked to it, in one step - this is what the client will use to
+      // log in and see their own measurements.
+      const { client_id } = await callManageAccount({
+        action: 'create',
+        role: 'client',
+        full_name: form.full_name,
+        client_full_name: form.full_name,
+        username,
+        password,
+      })
 
+      let photo_url = null
       if (photoFile) {
         const ext = photoFile.name.split('.').pop()
         const path = `${crypto.randomUUID()}.${ext}`
@@ -47,13 +66,24 @@ export default function AddClientModal({ onClose, onCreated, ownerId }) {
         photo_url = publicUrl.publicUrl
       }
 
-      const { data, error: insertError } = await supabase
+      // Fill in the rest of the personal info onto the record the function
+      // just created.
+      const { data, error: updateError } = await supabase
         .from('clients')
-        .insert([{ ...form, birth_date: form.birth_date || null, photo_url, owner_id: ownerId }])
+        .update({
+          address: form.address,
+          phone: form.phone,
+          email: form.email,
+          birth_date: form.birth_date || null,
+          gender: form.gender,
+          notes: form.notes,
+          photo_url,
+        })
+        .eq('id', client_id)
         .select()
         .single()
 
-      if (insertError) throw insertError
+      if (updateError) throw updateError
       onCreated(data)
     } catch (err) {
       setError(err.message || t('genericSaveError'))
@@ -145,6 +175,35 @@ export default function AddClientModal({ onClose, onCreated, ownerId }) {
               onChange={(e) => update('notes', e.target.value)}
             />
           </Field>
+
+          <div className="border-t border-line pt-3 mt-1">
+            <p className="text-xs font-mono uppercase tracking-wide text-ink-soft mb-2">
+              {t('clientLoginSectionTitle')}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label={t('fieldUsername')}>
+                <input
+                  className="input"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="ivan.petrov"
+                  required
+                />
+              </Field>
+              <Field label={t('loginPassword')}>
+                <input
+                  className="input"
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  required
+                />
+              </Field>
+            </div>
+            <span className="block text-xs text-ink-soft mt-1">{t('usernameHelp')}</span>
+          </div>
 
           {error && <p className="text-sm text-stamp">{error}</p>}
 
