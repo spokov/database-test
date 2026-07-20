@@ -184,9 +184,6 @@ create policy "staff_delete_photos" on storage.objects for delete
 -- ============================================================
 -- 9. СЪЗДАВАНЕ НА ПЪРВИЯ АДМИН (еднократно, ръчно)
 -- ============================================================
--- а) Supabase Dashboard -> Authentication -> Users -> Add user
---    (въведи имейл + парола, Auto Confirm User: ON)
--- б) Копирай новосъздадения User UID и изпълни (замени стойностите):
---
--- insert into profiles (id, role, full_name, email)
--- values ('ПОСТАВИ-USER-UID-ТУК', 'admin', 'Име Фамилия', 'admin@example.com');
+-- Виж README.md ("Създай първия администраторски акаунт") за пълните
+-- стъпки - след migration_5.sql акаунтите вход с потребителско име, не с
+-- реален имейл.

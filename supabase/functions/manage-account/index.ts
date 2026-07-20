@@ -1,13 +1,15 @@
 // Supabase Edge Function: manage-account
-// Creates or deletes login accounts (trainer/client) on behalf of an
-// authenticated admin/trainer, using the service role key server-side only.
+// Creates, deletes, and resets passwords for login accounts (trainer/client)
+// on behalf of an authenticated admin/trainer, using the service role key
+// server-side only.
 //
 // Deploy with:
 //   supabase functions deploy manage-account
-//   supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 //
-// SUPABASE_URL and SUPABASE_ANON_KEY are already available automatically
-// inside every Edge Function - you only need to set the service role key.
+// SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY are all
+// provided automatically inside every Edge Function - no `supabase secrets
+// set` step is needed (the CLI will actually refuse env names starting with
+// SUPABASE_, since those three are reserved/auto-injected).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -17,11 +19,29 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+const SYNTHETIC_DOMAIN = 'clientdb.local'
+const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,40}$/
+
+function usernameToEmail(username) {
+  return `${username.trim().toLowerCase()}@${SYNTHETIC_DOMAIN}`
+}
+
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   })
+}
+
+// Is `caller` allowed to manage `targetUserId` (any of: is caller themself,
+// caller is admin, or caller created targetUserId directly/transitively)?
+async function canManage(adminClient, callerRole, callerId, targetUserId) {
+  if (callerRole === 'admin' || targetUserId === callerId) return true
+  const { data: isAncestor } = await adminClient.rpc('is_ancestor_of', {
+    ancestor: callerId,
+    target: targetUserId,
+  })
+  return !!isAncestor
 }
 
 Deno.serve(async (req) => {
@@ -63,15 +83,7 @@ Deno.serve(async (req) => {
       const { user_id } = body
       if (!user_id) return json({ error: 'Missing user_id' }, 400)
 
-      const isSelf = user_id === caller.id
-      let allowed = callerProfile.role === 'admin' || isSelf
-      if (!allowed) {
-        const { data: isAncestor } = await adminClient.rpc('is_ancestor_of', {
-          ancestor: caller.id,
-          target: user_id,
-        })
-        allowed = !!isAncestor
-      }
+      const allowed = await canManage(adminClient, callerProfile.role, caller.id, user_id)
       if (!allowed) return json({ error: 'Not allowed to delete this account' }, 403)
 
       const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id)
@@ -80,11 +92,35 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
-    // action === 'create' (default)
-    const { email, password, full_name, role, client_full_name } = body
+    if (body.action === 'reset_password') {
+      const { user_id, new_password } = body
+      if (!user_id || !new_password) return json({ error: 'Missing fields' }, 400)
+      if (new_password.length < 6) {
+        return json({ error: 'Password must be at least 6 characters' }, 400)
+      }
 
-    if (!email || !password || !role) {
+      const allowed = await canManage(adminClient, callerProfile.role, caller.id, user_id)
+      if (!allowed) return json({ error: 'Not allowed to change this password' }, 403)
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(user_id, {
+        password: new_password,
+      })
+      if (updateError) throw updateError
+
+      return json({ ok: true })
+    }
+
+    // action === 'create' (default)
+    const { username, password, full_name, role, client_full_name } = body
+
+    if (!username || !password || !role) {
       return json({ error: 'Missing required fields' }, 400)
+    }
+    if (!USERNAME_PATTERN.test(username.trim())) {
+      return json(
+        { error: 'Username must be 3-40 characters: letters, digits, dot, underscore, hyphen' },
+        400
+      )
     }
     if (!['trainer', 'client', 'admin'].includes(role)) {
       return json({ error: 'Invalid role' }, 400)
@@ -92,6 +128,8 @@ Deno.serve(async (req) => {
     if (callerProfile.role === 'trainer' && role === 'admin') {
       return json({ error: 'Trainers cannot create admin accounts' }, 403)
     }
+
+    const email = usernameToEmail(username)
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
@@ -106,6 +144,7 @@ Deno.serve(async (req) => {
       id: newUserId,
       role,
       full_name: full_name || null,
+      username: username.trim(),
       email,
       created_by: caller.id,
     })
@@ -119,7 +158,7 @@ Deno.serve(async (req) => {
       const { data: clientRow, error: clientError } = await adminClient
         .from('clients')
         .insert({
-          full_name: client_full_name || full_name || email,
+          full_name: client_full_name || full_name || username,
           owner_id: caller.id,
           user_id: newUserId,
         })

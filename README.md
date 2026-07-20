@@ -116,11 +116,13 @@ git push -u origin main
 да открадне тези права. Затова има малка сървърна функция (Supabase Edge
 Function), която го върши безопасно. Трябва да я качиш веднъж:
 
-### А) Пусни миграцията в базата
+### А) Пусни миграциите в базата
 
-Supabase → SQL Editor → New query → копирай `supabase/migration_4.sql` → Run.
+Supabase → SQL Editor → New query → изпълни **последователно**:
+1. `supabase/migration_4.sql`
+2. `supabase/migration_5.sql` (добавя вход с потребителско име вместо имейл)
 
-### Б) Качи сървърната функция (еднократно)
+### Б) Качи сървърната функция (еднократно, или пак ако вече си я качвал по-рано)
 
 Нужен ти е [Supabase CLI](https://supabase.com/docs/guides/cli):
 
@@ -129,24 +131,45 @@ npm install -g supabase
 supabase login
 supabase link --project-ref ТВОЯТ-PROJECT-REF   # виждаш го в URL адреса на проекта
 supabase functions deploy manage-account
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=твоят-service-role-ключ
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` е в Supabase Dashboard → Project Settings → API →
-`service_role` (пази го в тайна, никога не го слагай във фронтенда/GitHub).
+Ако вече си я качвал преди (за версията с имейл), просто пусни отново
+`supabase functions deploy manage-account` — ще презапише старата версия с
+новата, която ползва потребителско име и позволява смяна на пароли.
+
+Това е всичко — **не** е нужно да задаваш `SUPABASE_SERVICE_ROLE_KEY` ръчно.
+Supabase го подава автоматично на всяка Edge Function (заедно с `SUPABASE_URL`
+и `SUPABASE_ANON_KEY`), затова CLI дори отказва да презапише имена, започващи
+с `SUPABASE_` — ако видиш съобщение от рода на "Env name cannot start with
+SUPABASE_, skipping", това е очаквано и функцията вече работи нормално.
 
 ### В) Създай първия администраторски акаунт (еднократно, ръчно)
 
-1. Supabase Dashboard → Authentication → Users → Add user (имейл + парола,
-   Auto Confirm User: ON).
+Новите акаунти вече се създават с потребителско име (не реален имейл), но
+самият Supabase Auth изисква технически поле "имейл" отдолу — затова за
+първия администратор просто въвеждаш нещо от вида `потребителскоиме@clientdb.local`:
+
+1. Supabase Dashboard → Authentication → Users → Add user:
+   - Email: `твоетоиме@clientdb.local` (измисли си потребителско име, залепи `@clientdb.local`)
+   - Password: избери парола
+   - Auto Confirm User: ON
 2. Копирай новия User UID.
-3. SQL Editor → изпълни:
+3. SQL Editor → изпълни (замени стойностите):
    ```sql
-   insert into profiles (id, role, full_name, email)
-   values ('ПОСТАВИ-USER-UID-ТУК', 'admin', 'Твоето име', 'твоят@имейл.com');
+   insert into profiles (id, role, full_name, username, email)
+   values ('ПОСТАВИ-USER-UID-ТУК', 'admin', 'Твоето име', 'твоетоиме', 'твоетоиме@clientdb.local');
    ```
-4. Влез в сайта с този имейл/парола → вече си администратор → от менюто
-   "Акаунти" можеш да създаваш треньори и клиенти.
+4. Влез в сайта с потребителско име `твоетоиме` и паролата → вече си
+   администратор → от менюто "Акаунти" можеш да създаваш треньори и клиенти
+   (вече само с потребителско име, без имейл) и да сменяш паролите им по
+   всяко време с бутона 🔑.
+
+**Забележка за паролите:** никой (дори администраторът) не може да "види"
+вече зададена парола — те се пазят криптирани и необратими, това важи за
+всяка сериозна система. Бутонът 🔑 позволява на администратора (и на
+треньор, за акаунтите, които той е създал) да **зададе нова** парола на
+потребител по всяко време, което на практика решава същия проблем (връщане
+на достъп при забравена парола).
 
 ## Език на сайта
 
@@ -181,6 +204,7 @@ client-database/
 ├── supabase/
 │   ├── schema.sql               # базова схема + storage bucket
 │   ├── migration_4.sql          # вход, роли, йерархия, RLS
+│   ├── migration_5.sql          # вход с потребителско име
 │   └── functions/manage-account # сървърна функция за създаване/изтриване на акаунти
 ├── src/
 │   ├── pages/Home.jsx           # роспис на клиенти (админ/треньор)

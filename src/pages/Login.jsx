@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../lib/auth.jsx'
 import { useLanguage } from '../lib/i18n.jsx'
+import { resolveLoginEmail } from '../lib/username.js'
 
 export default function Login() {
   const { signIn } = useAuth()
   const { t } = useLanguage()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -14,7 +15,7 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await signIn(email, password)
+    const { error } = await signIn(resolveLoginEmail(identifier), password)
     if (error) setError(t('loginError'))
     setLoading(false)
   }
@@ -32,13 +33,13 @@ export default function Login() {
 
         <label className="block mb-3">
           <span className="block text-xs font-mono uppercase tracking-wide text-ink-soft mb-1">
-            {t('fieldEmail')}
+            {t('fieldUsername')}
           </span>
           <input
             className="input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             autoFocus
             required
           />

@@ -125,6 +125,12 @@ export const translations = {
     accountFullName: 'Име',
     accountClientRecordName: 'Име в картотеката (по желание)',
     deleteAccountConfirm: 'Изтрий акаунта на „{name}"? Достъпът му ще бъде спрян незабавно.',
+    fieldUsername: 'Потребителско име',
+    usernameHelp: 'Само букви, цифри, точка, долна черта или тире (3-40 символа). Не е нужен реален имейл.',
+    usernameInvalid: 'Невалидно потребителско име (3-40 символа: букви, цифри, . _ -).',
+    changePassword: 'Смени парола',
+    newPassword: 'Нова парола',
+    passwordChanged: 'Паролата е сменена успешно.',
   },
   en: {
     // menu
@@ -248,6 +254,12 @@ export const translations = {
     accountFullName: 'Name',
     accountClientRecordName: 'Client record name (optional)',
     deleteAccountConfirm: 'Delete the account for "{name}"? Their access will be revoked immediately.',
+    fieldUsername: 'Username',
+    usernameHelp: 'Letters, digits, dot, underscore or hyphen only (3-40 characters). No real email needed.',
+    usernameInvalid: 'Invalid username (3-40 characters: letters, digits, . _ -).',
+    changePassword: 'Change password',
+    newPassword: 'New password',
+    passwordChanged: 'Password changed successfully.',
   },
 }
 

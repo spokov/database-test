@@ -2,11 +2,29 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../lib/auth.jsx'
 import { useLanguage } from '../lib/i18n.jsx'
+import { isValidUsername } from '../lib/username.js'
 
 const ROLE_LABELS_KEY = {
   admin: 'roleAdmin',
   trainer: 'roleTrainer',
   client: 'roleClient',
+}
+
+async function callFunction(body) {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData.session?.access_token
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-account`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.error || 'Request failed')
+  return json
 }
 
 export default function Accounts() {
@@ -19,6 +37,7 @@ export default function Accounts() {
   const [showCreate, setShowCreate] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [passwordTargetId, setPasswordTargetId] = useState(null)
 
   useEffect(() => {
     load()
@@ -35,26 +54,6 @@ export default function Accounts() {
     setLoading(false)
   }
 
-  async function callFunction(body) {
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-account`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(body),
-      }
-    )
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error || 'Request failed')
-    return json
-  }
-
   async function handleDelete(id) {
     setDeletingId(id)
     try {
@@ -67,6 +66,8 @@ export default function Accounts() {
       setDeletingId(null)
     }
   }
+
+  const passwordTarget = accounts.find((a) => a.id === passwordTargetId)
 
   return (
     <div>
@@ -94,56 +95,59 @@ export default function Accounts() {
       ) : (
         <div className="space-y-2">
           {accounts.map((a) => (
-            <div
-              key={a.id}
-              className="bg-card border border-line rounded-card p-3 flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-ink truncate">{a.full_name || a.email}</p>
-                <p className="text-xs text-ink-soft truncate">{a.email}</p>
+            <div key={a.id}>
+              <div className="bg-card border border-line rounded-card p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink truncate">{a.full_name || a.username}</p>
+                  <p className="font-mono text-xs text-ink-soft truncate">@{a.username}</p>
+                </div>
+                <span className="font-mono text-xs uppercase tracking-wide text-ledger whitespace-nowrap">
+                  {t(ROLE_LABELS_KEY[a.role] || a.role)}
+                </span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => setPasswordTargetId(a.id)}
+                    aria-label={t('changePassword')}
+                    title={t('changePassword')}
+                    className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-ledger hover:bg-ledger/10 rounded-card transition-colors"
+                  >
+                    🔑
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(a.id)}
+                    aria-label={t('delete')}
+                    className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-stamp hover:bg-stamp/10 rounded-card transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-              <span className="font-mono text-xs uppercase tracking-wide text-ledger whitespace-nowrap">
-                {t(ROLE_LABELS_KEY[a.role] || a.role)}
-              </span>
-              <button
-                onClick={() => setConfirmDeleteId(a.id)}
-                aria-label={t('delete')}
-                className="w-9 h-9 flex-shrink-0 flex items-center justify-center text-ink-soft hover:text-stamp hover:bg-stamp/10 rounded-card transition-colors"
-              >
-                ×
-              </button>
+
+              {confirmDeleteId === a.id && (
+                <div className="mt-2 border border-stamp/30 bg-stamp/5 rounded-card p-3 flex items-center justify-between gap-3">
+                  <span className="text-sm text-ink">
+                    {t('deleteAccountConfirm', { name: a.full_name || a.username })}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="text-sm text-ink-soft hover:text-ink"
+                    >
+                      {t('cancel')}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(a.id)}
+                      disabled={deletingId === a.id}
+                      className="text-sm font-medium text-white bg-stamp px-3 py-1 rounded-card hover:bg-stamp/90 disabled:opacity-50"
+                    >
+                      {deletingId === a.id ? t('saving') : t('delete')}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
-      )}
-
-      {accounts.map(
-        (a) =>
-          confirmDeleteId === a.id && (
-            <div
-              key={`confirm-${a.id}`}
-              className="mt-3 border border-stamp/30 bg-stamp/5 rounded-card p-3 flex items-center justify-between gap-3"
-            >
-              <span className="text-sm text-ink">
-                {t('deleteAccountConfirm', { name: a.full_name || a.email })}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfirmDeleteId(null)}
-                  className="text-sm text-ink-soft hover:text-ink"
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  onClick={() => handleDelete(a.id)}
-                  disabled={deletingId === a.id}
-                  className="text-sm font-medium text-white bg-stamp px-3 py-1 rounded-card hover:bg-stamp/90 disabled:opacity-50"
-                >
-                  {deletingId === a.id ? t('saving') : t('delete')}
-                </button>
-              </div>
-            </div>
-          )
       )}
 
       {showCreate && (
@@ -154,25 +158,36 @@ export default function Accounts() {
             setShowCreate(false)
             load()
           }}
-          callFunction={callFunction}
+        />
+      )}
+
+      {passwordTarget && (
+        <ChangePasswordModal
+          account={passwordTarget}
+          onClose={() => setPasswordTargetId(null)}
+          onDone={() => setPasswordTargetId(null)}
         />
       )}
     </div>
   )
 }
 
-function CreateAccountModal({ canCreateAdmin, onClose, onCreated, callFunction }) {
+function CreateAccountModal({ canCreateAdmin, onClose, onCreated }) {
   const { t } = useLanguage()
   const [role, setRole] = useState('client')
   const [fullName, setFullName] = useState('')
   const [clientFullName, setClientFullName] = useState('')
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!isValidUsername(username)) {
+      setError(t('usernameInvalid'))
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -181,7 +196,7 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated, callFunction }
         role,
         full_name: fullName,
         client_full_name: role === 'client' ? clientFullName || fullName : undefined,
-        email,
+        username,
         password,
       })
       onCreated()
@@ -234,15 +249,17 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated, callFunction }
 
           <label className="block">
             <span className="block text-xs font-mono uppercase tracking-wide text-ink-soft mb-1">
-              {t('fieldEmail')}
+              {t('fieldUsername')}
             </span>
             <input
               className="input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="ivan.petrov"
               required
             />
+            <span className="block text-xs text-ink-soft mt-1">{t('usernameHelp')}</span>
           </label>
 
           <label className="block">
@@ -278,6 +295,87 @@ function CreateAccountModal({ canCreateAdmin, onClose, onCreated, callFunction }
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function ChangePasswordModal({ account, onClose, onDone }) {
+  const { t } = useLanguage()
+  const [password, setPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await callFunction({ action: 'reset_password', user_id: account.id, new_password: password })
+      setDone(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto">
+      <div className="bg-card border border-line rounded-card p-6 max-w-sm w-full">
+        <p className="font-display font-semibold text-ink text-lg mb-1">
+          {t('changePassword')}
+        </p>
+        <p className="text-sm text-ink-soft mb-4">@{account.username}</p>
+
+        {done ? (
+          <>
+            <p className="text-sm text-ink mb-4">{t('passwordChanged')}</p>
+            <button
+              onClick={onDone}
+              className="w-full px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors"
+            >
+              {t('save')}
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block">
+              <span className="block text-xs font-mono uppercase tracking-wide text-ink-soft mb-1">
+                {t('newPassword')}
+              </span>
+              <input
+                className="input"
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                autoFocus
+                required
+              />
+            </label>
+
+            {error && <p className="text-sm text-stamp">{error}</p>}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink transition-colors"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-50"
+              >
+                {saving ? t('saving') : t('save')}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )
