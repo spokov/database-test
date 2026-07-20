@@ -196,14 +196,9 @@ Deno.serve(async (req) => {
           if (createClientError) throw createClientError
         }
       } else {
-        // new_role === 'trainer': this account was a client - unlink its
-        // own client record (kept intact, just no longer "is" this account)
-        // so the historical data is never lost.
-        const { error: unlinkError } = await adminClient
-          .from('clients')
-          .update({ user_id: null })
-          .eq('user_id', user_id)
-        if (unlinkError) throw unlinkError
+        // new_role === 'trainer': this account was a client - its own client
+        // record (data + history) is left exactly as-is, still linked, so
+        // the roster can show a "Trainer" note on it and nothing is lost.
       }
 
       const { error: roleError } = await adminClient

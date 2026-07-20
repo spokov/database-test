@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx'
 export default function Home() {
   const { t } = useLanguage()
   const [clients, setClients] = useState([])
+  const [trainerAccountIds, setTrainerAccountIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [showAdd, setShowAdd] = useState(false)
@@ -25,8 +26,27 @@ export default function Home() {
       .from('clients')
       .select('*')
       .order('created_at', { ascending: false })
-    if (error) setError(error.message)
-    else setClients(data)
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+    setClients(data)
+
+    // A client record's linked account may since have been promoted to
+    // trainer (role switch) - look those up so the roster can flag them.
+    const userIds = data.map((c) => c.user_id).filter(Boolean)
+    if (userIds.length > 0) {
+      const { data: accounts } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .in('id', userIds)
+      setTrainerAccountIds(
+        new Set((accounts || []).filter((a) => a.role === 'trainer').map((a) => a.id))
+      )
+    } else {
+      setTrainerAccountIds(new Set())
+    }
     setLoading(false)
   }
 
@@ -89,7 +109,12 @@ export default function Home() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
           {filtered.map((client) => (
-            <ClientCard key={client.id} client={client} onDelete={setToDelete} />
+            <ClientCard
+              key={client.id}
+              client={client}
+              onDelete={setToDelete}
+              isTrainer={client.user_id && trainerAccountIds.has(client.user_id)}
+            />
           ))}
         </div>
       )}

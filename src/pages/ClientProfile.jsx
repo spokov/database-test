@@ -17,6 +17,7 @@ export default function ClientProfile() {
     email: t('fieldEmail'),
     birth_date: t('fieldBirthDate'),
     gender: t('fieldGender'),
+    height_cm: t('fieldHeight'),
     notes: t('fieldNotes'),
   }
 
@@ -83,6 +84,7 @@ export default function ClientProfile() {
           email: form.email,
           birth_date: form.birth_date || null,
           gender: form.gender,
+          height_cm: form.height_cm ? Number(form.height_cm) : null,
           notes: form.notes,
           photo_url,
         })
@@ -204,7 +206,14 @@ export default function ClientProfile() {
                     ) : (
                       <input
                         className="input"
-                        type={field === 'birth_date' ? 'date' : 'text'}
+                        type={
+                          field === 'birth_date'
+                            ? 'date'
+                            : field === 'height_cm'
+                            ? 'number'
+                            : 'text'
+                        }
+                        step={field === 'height_cm' ? 'any' : undefined}
                         value={form[field] || ''}
                         onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                       />
@@ -243,6 +252,10 @@ export default function ClientProfile() {
                   <Info label={t('fieldAddress')} value={client.address} />
                   <Info label={t('fieldBirthDate')} value={client.birth_date} />
                   <Info label={t('fieldGender')} value={genderLabel(client.gender)} />
+                  <Info
+                    label={t('fieldHeight')}
+                    value={client.height_cm ? `${client.height_cm} ${t('cmSuffix')}` : ''}
+                  />
                   <Info label={t('fieldNotes')} value={client.notes} />
                 </dl>
                 <div className="flex justify-center sm:justify-start gap-4 mt-4">

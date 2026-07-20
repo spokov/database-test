@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../lib/auth.jsx'
 import { useLanguage } from '../lib/i18n.jsx'
+import { calcAge } from '../lib/format.js'
 import ParametersTable from '../components/ParametersTable.jsx'
 
 function today() {
@@ -38,7 +39,7 @@ export default function ParameterGroupPage() {
     setLoading(true)
     const [{ data: clientData, error: clientError }, { data: paramData, error: paramError }] =
       await Promise.all([
-        supabase.from('clients').select('full_name').eq('id', id).single(),
+        supabase.from('clients').select('full_name, birth_date, height_cm').eq('id', id).single(),
         supabase
           .from('parameters')
           .select('*')
@@ -144,6 +145,7 @@ export default function ParameterGroupPage() {
   if (loading) return <p className="text-ink-soft font-mono text-sm">{t('loading')}</p>
 
   const hasAnyNewValue = parameters.some((p) => (newValues[p.id] ?? '') !== '')
+  const age = calcAge(client?.birth_date)
 
   return (
     <div>
@@ -151,7 +153,21 @@ export default function ParameterGroupPage() {
         {client?.full_name}
       </p>
       <p className="font-display text-xl font-semibold text-ink mt-1">{meta.title}</p>
-      <p className="text-sm text-ink-soft mb-6">{meta.subtitle}</p>
+      {category === 'tanita' && (age !== null || client?.height_cm) ? (
+        <>
+          <p className="text-sm text-ink-soft">{meta.subtitle}</p>
+          <p className="font-mono text-xs text-ledger mb-6">
+            {[
+              age !== null ? `${age}${t('ageSuffix')}` : null,
+              client?.height_cm ? `${client.height_cm} ${t('cmSuffix')}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-ink-soft mb-6">{meta.subtitle}</p>
+      )}
 
       {error && <p className="text-sm text-stamp mb-4">{error}</p>}
 

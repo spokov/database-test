@@ -44,6 +44,8 @@ export const translations = {
     fieldGender: 'Пол',
     fieldPhoto: 'Снимка',
     fieldNotes: 'Бележки',
+    fieldHeight: 'Височина (см)',
+    cmSuffix: 'см',
     genderMale: 'Мъж',
     genderFemale: 'Жена',
     genderOther: 'Друго',
@@ -136,7 +138,7 @@ export const translations = {
     changeRoleToClientWarning:
       'Този акаунт ще стане клиент. Ако в момента управлява клиенти, те ще преминат под неговия треньор, а самият той ще остане само със собствения си клиентски запис. Нищо не се изтрива.',
     changeRoleToTrainerWarning:
-      'Този акаунт ще стане треньор. Собственият му клиентски запис (данни и история) се запазва, но вече не е свързан с акаунт за вход.',
+      'Този акаунт ще стане треньор. Собственият му клиентски запис (данни и история) се запазва и ще бъде отбелязан с "Треньор" в картотеката.',
     clientLoginSectionTitle: 'Вход за клиента',
     fieldFirstName: 'Име',
     fieldLastName: 'Фамилия',
@@ -187,6 +189,8 @@ export const translations = {
     fieldGender: 'Gender',
     fieldPhoto: 'Photo',
     fieldNotes: 'Notes',
+    fieldHeight: 'Height (cm)',
+    cmSuffix: 'cm',
     genderMale: 'Male',
     genderFemale: 'Female',
     genderOther: 'Other',
@@ -279,7 +283,7 @@ export const translations = {
     changeRoleToClientWarning:
       "This account will become a client. If it currently manages clients, they'll move to its own trainer, and it will keep only its own client record. Nothing is deleted.",
     changeRoleToTrainerWarning:
-      'This account will become a trainer. Its own client record (data and history) is kept, but is no longer linked to a login.',
+      'This account will become a trainer. Its own client record (data and history) is kept, and will show a "Trainer" note in the roster.',
     clientLoginSectionTitle: 'Client login',
     fieldFirstName: 'First name',
     fieldLastName: 'Last name',

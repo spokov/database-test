@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../lib/i18n.jsx'
+import { calcAge } from '../lib/format.js'
 
 function initials(name = '') {
   return name
@@ -10,14 +11,7 @@ function initials(name = '') {
     .join('')
 }
 
-function calcAge(birthDate) {
-  if (!birthDate) return null
-  const b = new Date(birthDate)
-  const diff = Date.now() - b.getTime()
-  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
-}
-
-export default function ClientCard({ client, onDelete }) {
+export default function ClientCard({ client, onDelete, isTrainer }) {
   const { t, genderLabel } = useLanguage()
   const age = calcAge(client.birth_date)
 
@@ -55,8 +49,13 @@ export default function ClientCard({ client, onDelete }) {
           </div>
         )}
         <div className="min-w-0">
-          <p className="font-display font-semibold text-ink truncate">
-            {client.full_name}
+          <p className="font-display font-semibold text-ink truncate flex items-center gap-2">
+            <span className="truncate">{client.full_name}</span>
+            {isTrainer && (
+              <span className="flex-shrink-0 font-mono text-[10px] uppercase tracking-wide text-ledger bg-ledger/10 border border-ledger/30 rounded px-1.5 py-0.5">
+                {t('roleTrainer')}
+              </span>
+            )}
           </p>
           <p className="font-mono text-xs text-ink-soft mt-1">
             {[age ? `${age}${t('ageSuffix')}` : null, genderLabel(client.gender)]

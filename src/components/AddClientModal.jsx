@@ -12,6 +12,7 @@ const empty = {
   email: '',
   birth_date: '',
   gender: '',
+  height_cm: '',
   notes: '',
 }
 
@@ -73,6 +74,7 @@ export default function AddClientModal({ onClose, onCreated }) {
           email: form.email,
           birth_date: form.birth_date || null,
           gender: form.gender,
+          height_cm: form.height_cm ? Number(form.height_cm) : null,
           notes: form.notes,
           photo_url,
         })
@@ -188,6 +190,16 @@ export default function AddClientModal({ onClose, onCreated }) {
               </select>
             </Field>
           </div>
+
+          <Field label={t('fieldHeight')}>
+            <input
+              className="input"
+              type="number"
+              step="any"
+              value={form.height_cm}
+              onChange={(e) => update('height_cm', e.target.value)}
+            />
+          </Field>
 
           <Field label={t('fieldPhoto')}>
             <input
