@@ -1,30 +1,167 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLanguage } from '../lib/i18n.jsx'
+import { toCSV, parseCSV } from '../lib/csv.js'
 
-export default function HistoryModal({ open, onClose, parameters, entriesByParam, onUpdateEntry, onDeleteEntry, readOnly = false }) {
+export default function HistoryModal({
+  open,
+  onClose,
+  parameters,
+  entriesByParam,
+  onUpdateEntry,
+  onDeleteEntry,
+  onImportRows,
+  exportFileName,
+  readOnly = false,
+}) {
   const { t, formatDate } = useLanguage()
+  const [importMessage, setImportMessage] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef(null)
+
   if (!open) return null
 
   const allDates = Array.from(
-    new Set(
-      parameters.flatMap((p) => (entriesByParam[p.id] || []).map((e) => e.recorded_at))
-    )
+    new Set(parameters.flatMap((p) => (entriesByParam[p.id] || []).map((e) => e.recorded_at)))
   ).sort()
+
+  function handleExport() {
+    const header = [t('colParameter'), ...allDates]
+    const rows = parameters.map((param) => {
+      const entries = entriesByParam[param.id] || []
+      const byDate = {}
+      for (const e of entries) if (!byDate[e.recorded_at]) byDate[e.recorded_at] = e
+      return [param.name, ...allDates.map((d) => byDate[d]?.value ?? '')]
+    })
+    const csv = toCSV([header, ...rows])
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${exportFileName || 'history'}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function handleImportClick() {
+    setImportMessage(null)
+    fileInputRef.current?.click()
+  }
+
+  function handleFileSelected(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        const rows = parseCSV(String(reader.result))
+        if (rows.length < 2) {
+          setImportMessage({ type: 'error', text: t('importParseError') })
+          return
+        }
+        const [header, ...dataRows] = rows
+        const dateColumns = header.slice(1)
+        const nameToParam = new Map(parameters.map((p) => [p.name.trim().toLowerCase(), p]))
+
+        const entries = []
+        const unmatched = new Set()
+        for (const r of dataRows) {
+          const [rawName, ...values] = r
+          const param = nameToParam.get((rawName || '').trim().toLowerCase())
+          if (!param) {
+            if ((rawName || '').trim()) unmatched.add(rawName.trim())
+            continue
+          }
+          values.forEach((val, idx) => {
+            const v = (val ?? '').trim()
+            const recorded_at = dateColumns[idx]
+            if (v === '' || !recorded_at) return
+            entries.push({ parameter_id: param.id, recorded_at, value: v })
+          })
+        }
+
+        if (entries.length === 0) {
+          setImportMessage({ type: 'error', text: t('importNothingFound') })
+          return
+        }
+
+        setImporting(true)
+        const result = await onImportRows(entries)
+        setImporting(false)
+
+        if (result?.error) {
+          setImportMessage({ type: 'error', text: result.error })
+        } else {
+          setImportMessage({
+            type: 'success',
+            text: t('importSuccess', { count: result.imported }),
+            unmatched: unmatched.size > 0 ? Array.from(unmatched).join(', ') : null,
+          })
+        }
+      } catch (err) {
+        setImporting(false)
+        setImportMessage({ type: 'error', text: t('importParseError') })
+      }
+    }
+    reader.readAsText(file, 'utf-8')
+  }
 
   return (
     <div className="fixed inset-0 bg-ink/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
       <div className="bg-card w-full sm:max-w-4xl sm:rounded-card border-t sm:border border-line max-h-[90vh] sm:max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-line flex-shrink-0">
-          <p className="font-display font-semibold text-ink">{t('historyTitle')}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('closeAria')}
-            className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-ink rounded-card hover:bg-paper transition-colors"
-          >
-            ✕
-          </button>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-line flex-shrink-0 gap-2">
+          <p className="font-display font-semibold text-ink truncate">{t('historyTitle')}</p>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleExport}
+              className="font-mono text-xs uppercase tracking-wide text-ink-soft hover:text-ledger px-2 py-1.5 rounded-card hover:bg-paper transition-colors whitespace-nowrap"
+            >
+              {t('exportButton')}
+            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={handleImportClick}
+                disabled={importing}
+                className="font-mono text-xs uppercase tracking-wide text-ink-soft hover:text-ledger px-2 py-1.5 rounded-card hover:bg-paper transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                {importing ? t('saving') : t('importButton')}
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleFileSelected}
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('closeAria')}
+              className="w-9 h-9 flex items-center justify-center text-ink-soft hover:text-ink rounded-card hover:bg-paper transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
+
+        {importMessage && (
+          <div
+            className={`px-4 sm:px-6 py-2 text-sm border-b border-line flex-shrink-0 ${
+              importMessage.type === 'error' ? 'text-stamp' : 'text-ledger'
+            }`}
+          >
+            <p>{importMessage.text}</p>
+            {importMessage.unmatched && (
+              <p className="text-xs text-ink-soft mt-1">
+                {t('importUnmatched')}: {importMessage.unmatched}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="overflow-auto p-4 sm:p-6">
           {allDates.length === 0 ? (

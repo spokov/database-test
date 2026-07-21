@@ -93,7 +93,10 @@ export default function ParameterGroupPage() {
     if (rows.length === 0) return
 
     setSaving(true)
-    const { data, error } = await supabase.from('parameter_entries').insert(rows).select()
+    const { data, error } = await supabase
+      .from('parameter_entries')
+      .upsert(rows, { onConflict: 'client_id,parameter_id,recorded_at' })
+      .select()
     setSaving(false)
 
     if (error) {
@@ -104,12 +107,44 @@ export default function ParameterGroupPage() {
     setEntriesByParam((prev) => {
       const next = { ...prev }
       for (const entry of data) {
-        next[entry.parameter_id] = sortEntries([...(next[entry.parameter_id] || []), entry])
+        const existing = next[entry.parameter_id] || []
+        const idx = existing.findIndex((e) => e.id === entry.id)
+        const updated =
+          idx >= 0 ? existing.map((e, i) => (i === idx ? entry : e)) : [...existing, entry]
+        next[entry.parameter_id] = sortEntries(updated)
       }
       return next
     })
     setNewValues({})
     setDate(today())
+  }
+
+  async function handleImportRows(rows) {
+    if (rows.length === 0) return { imported: 0 }
+    const withClient = rows.map((r) => ({ ...r, client_id: id }))
+    const { data, error } = await supabase
+      .from('parameter_entries')
+      .upsert(withClient, { onConflict: 'client_id,parameter_id,recorded_at' })
+      .select()
+
+    if (error) {
+      setError(error.message)
+      return { imported: 0, error: error.message }
+    }
+
+    setEntriesByParam((prev) => {
+      const next = { ...prev }
+      for (const entry of data) {
+        const existing = next[entry.parameter_id] || []
+        const idx = existing.findIndex((e) => e.id === entry.id)
+        const updated =
+          idx >= 0 ? existing.map((e, i) => (i === idx ? entry : e)) : [...existing, entry]
+        next[entry.parameter_id] = sortEntries(updated)
+      }
+      return next
+    })
+
+    return { imported: data.length }
   }
 
   async function handleUpdateEntry(parameterId, entryId, value) {
@@ -179,6 +214,8 @@ export default function ParameterGroupPage() {
           onValueChange={(paramId, v) => setNewValues((prev) => ({ ...prev, [paramId]: v }))}
           onUpdateEntry={(paramId, entryId, value) => handleUpdateEntry(paramId, entryId, value)}
           onDeleteEntry={(paramId, entryId) => handleDeleteEntry(paramId, entryId)}
+          onImportRows={handleImportRows}
+          exportFileName={`${(client?.full_name || 'client').replace(/\s+/g, '-')}-${category}`}
           readOnly={readOnly}
         />
 
