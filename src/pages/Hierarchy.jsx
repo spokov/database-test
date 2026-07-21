@@ -6,12 +6,27 @@ import { useLanguage } from '../lib/i18n.jsx'
 const ROLE_ICON = { admin: '👑', trainer: '🧑‍🏫' }
 const ROLE_LABEL_KEY = { admin: 'roleAdmin', trainer: 'roleTrainer' }
 
+// All IDs reachable below `id` by following the sub-trainer tree - used to
+// stop a trainer from being moved under one of their own descendants.
+function getDescendantIds(id, childrenOf) {
+  const result = new Set()
+  const stack = [...(childrenOf.get(id) || [])]
+  while (stack.length) {
+    const node = stack.pop()
+    if (result.has(node.id)) continue
+    result.add(node.id)
+    stack.push(...(childrenOf.get(node.id) || []))
+  }
+  return result
+}
+
 export default function Hierarchy() {
   const { t } = useLanguage()
   const [profiles, setProfiles] = useState([])
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [moveNode, setMoveNode] = useState(null) // { type: 'trainer'|'client', id, currentParentId }
 
   useEffect(() => {
     load()
@@ -66,12 +81,39 @@ export default function Hierarchy() {
 
   const isEmpty = roots.length === 0
 
+  async function handleMoveConfirm(newParentId) {
+    if (!moveNode) return
+    if (moveNode.type === 'client') {
+      const { error } = await supabase
+        .from('clients')
+        .update({ owner_id: newParentId })
+        .eq('id', moveNode.id)
+      if (error) {
+        setError(error.message)
+        return
+      }
+    } else {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ created_by: newParentId })
+        .eq('id', moveNode.id)
+      if (error) {
+        setError(error.message)
+        return
+      }
+    }
+    setMoveNode(null)
+    load()
+  }
+
   return (
     <div>
       <p className="font-display text-xl font-semibold text-ink mt-2 mb-1">
         {t('hierarchyTitle')}
       </p>
       <p className="text-sm text-ink-soft mb-6">{t('hierarchyDescription')}</p>
+
+      {error && <p className="text-sm text-stamp mb-4">{error}</p>}
 
       {isEmpty ? (
         <div className="text-center py-16 border border-dashed border-line rounded-card">
@@ -86,17 +128,30 @@ export default function Hierarchy() {
               childrenOf={childrenOf}
               clientsOf={clientsOf}
               t={t}
+              onMove={setMoveNode}
             />
           ))}
         </div>
+      )}
+
+      {moveNode && (
+        <MoveModal
+          moveNode={moveNode}
+          staff={staff}
+          childrenOf={childrenOf}
+          onClose={() => setMoveNode(null)}
+          onConfirm={handleMoveConfirm}
+          t={t}
+        />
       )}
     </div>
   )
 }
 
-function TreeNode({ profile, childrenOf, clientsOf, t }) {
+function TreeNode({ profile, childrenOf, clientsOf, t, onMove }) {
   const children = childrenOf.get(profile.id) || []
   const clients = clientsOf.get(profile.id) || []
+  const isRoot = !profile.created_by
 
   return (
     <div className="mb-1">
@@ -109,6 +164,19 @@ function TreeNode({ profile, childrenOf, clientsOf, t }) {
         <span className="font-mono text-[10px] uppercase tracking-wide text-ledger bg-ledger/10 border border-ledger/30 rounded px-1.5 py-0.5">
           {t(ROLE_LABEL_KEY[profile.role] || 'roleTrainer')}
         </span>
+        {profile.role === 'trainer' && (
+          <button
+            type="button"
+            onClick={() =>
+              onMove({ type: 'trainer', id: profile.id, currentParentId: profile.created_by })
+            }
+            aria-label={t('moveNode')}
+            title={t('moveNode')}
+            className="text-ink-soft/70 hover:text-ledger text-sm ml-1"
+          >
+            ⇅
+          </button>
+        )}
       </div>
 
       {(children.length > 0 || clients.length > 0) && (
@@ -120,20 +188,98 @@ function TreeNode({ profile, childrenOf, clientsOf, t }) {
               childrenOf={childrenOf}
               clientsOf={clientsOf}
               t={t}
+              onMove={onMove}
             />
           ))}
           {clients.map((c) => (
-            <Link
-              key={c.id}
-              to={`/client/${c.id}`}
-              className="flex items-center gap-2 py-1 text-sm text-ink-soft hover:text-ledger transition-colors"
-            >
-              <span className="text-base leading-none">🧍</span>
-              <span className="truncate">{c.full_name}</span>
-            </Link>
+            <div key={c.id} className="flex items-center gap-2 py-1 text-sm">
+              <Link
+                to={`/client/${c.id}`}
+                className="flex items-center gap-2 text-ink-soft hover:text-ledger transition-colors min-w-0"
+              >
+                <span className="text-base leading-none">🧍</span>
+                <span className="truncate">{c.full_name}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() =>
+                  onMove({ type: 'client', id: c.id, currentParentId: c.owner_id })
+                }
+                aria-label={t('moveNode')}
+                title={t('moveNode')}
+                className="text-ink-soft/70 hover:text-ledger text-sm"
+              >
+                ⇅
+              </button>
+            </div>
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function MoveModal({ moveNode, staff, childrenOf, onClose, onConfirm, t }) {
+  const excluded = new Set()
+  if (moveNode.type === 'trainer') {
+    excluded.add(moveNode.id)
+    for (const d of getDescendantIds(moveNode.id, childrenOf)) excluded.add(d)
+  }
+
+  const options = staff.filter((p) => !excluded.has(p.id))
+  const [selected, setSelected] = useState(moveNode.currentParentId || '')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await onConfirm(selected || null)
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto">
+      <div className="bg-card border border-line rounded-card p-6 max-w-sm w-full">
+        <p className="font-display font-semibold text-ink text-lg mb-1">{t('moveNode')}</p>
+        <p className="text-sm text-ink-soft mb-4">
+          {moveNode.type === 'trainer' ? t('moveTrainerHelp') : t('moveClientHelp')}
+        </p>
+
+        <label className="block mb-4">
+          <span className="block text-xs font-mono uppercase tracking-wide text-ink-soft mb-1">
+            {t('moveNewParent')}
+          </span>
+          <select
+            className="input"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            {moveNode.type === 'trainer' && <option value="">{t('moveTopLevel')}</option>}
+            {options.map((p) => (
+              <option key={p.id} value={p.id}>
+                {(p.full_name || p.username) + ` (@${p.username})`}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink transition-colors"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || (moveNode.type === 'client' && !selected)}
+            className="px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors disabled:opacity-50"
+          >
+            {saving ? t('saving') : t('save')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
