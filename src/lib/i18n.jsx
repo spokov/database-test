@@ -10,6 +10,7 @@ export const translations = {
     backToProfile: '← Обратно към профила',
     navHome: 'Начало',
     navSettings: 'Настройки на параметрите',
+    navHierarchy: 'Структура',
 
     // common
     loading: 'Зареждане...',
@@ -46,6 +47,10 @@ export const translations = {
     fieldNotes: 'Бележки',
     fieldHeight: 'Височина (см)',
     cmSuffix: 'см',
+    hierarchyTitle: 'Структура на треньорите и клиентите',
+    hierarchyDescription:
+      'Кой е създал кого - от администратор надолу през треньорите до клиентите им.',
+    noStructureYet: 'Все още няма създадени треньори или клиенти.',
     genderMale: 'Мъж',
     genderFemale: 'Жена',
     genderOther: 'Друго',
@@ -155,6 +160,7 @@ export const translations = {
     backToProfile: '← Back to profile',
     navHome: 'Home',
     navSettings: 'Parameter settings',
+    navHierarchy: 'Structure',
 
     // common
     loading: 'Loading...',
@@ -191,6 +197,9 @@ export const translations = {
     fieldNotes: 'Notes',
     fieldHeight: 'Height (cm)',
     cmSuffix: 'cm',
+    hierarchyTitle: 'Trainer & client structure',
+    hierarchyDescription: 'Who created whom - from admin down through trainers to their clients.',
+    noStructureYet: 'No trainers or clients created yet.',
     genderMale: 'Male',
     genderFemale: 'Female',
     genderOther: 'Other',

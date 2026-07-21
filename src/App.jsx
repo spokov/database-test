@@ -5,6 +5,7 @@ import ClientProfile from './pages/ClientProfile.jsx'
 import ParameterGroupPage from './pages/ParameterGroupPage.jsx'
 import Settings from './pages/Settings.jsx'
 import Accounts from './pages/Accounts.jsx'
+import Hierarchy from './pages/Hierarchy.jsx'
 import Login from './pages/Login.jsx'
 import ClientPortal from './pages/ClientPortal.jsx'
 import LanguageSwitcher from './components/LanguageSwitcher.jsx'
@@ -17,7 +18,7 @@ function useBackTarget(t, isClientRole) {
   const location = useLocation()
   const segments = location.pathname.split('/').filter(Boolean)
 
-  if (segments[0] === 'settings' || segments[0] === 'accounts') {
+  if (segments[0] === 'settings' || segments[0] === 'accounts' || segments[0] === 'hierarchy') {
     return { to: '/', label: t('backToHome') }
   }
   if (segments[0] === 'client' && segments.length === 2) {
@@ -94,12 +95,20 @@ function TopMenu() {
                   {t('navAccounts')}
                 </Link>
                 {profile?.role === 'admin' && (
-                  <Link
-                    to="/settings"
-                    className="block px-4 py-3 text-sm text-ink hover:bg-paper"
-                  >
-                    {t('navSettings')}
-                  </Link>
+                  <>
+                    <Link
+                      to="/hierarchy"
+                      className="block px-4 py-3 text-sm text-ink hover:bg-paper"
+                    >
+                      {t('navHierarchy')}
+                    </Link>
+                    <Link
+                      to="/settings"
+                      className="block px-4 py-3 text-sm text-ink hover:bg-paper"
+                    >
+                      {t('navSettings')}
+                    </Link>
+                  </>
                 )}
               </>
             )}
@@ -186,6 +195,7 @@ export default function App() {
             <Route path="/client/:id" element={<ClientProfile />} />
             <Route path="/client/:id/:category" element={<ParameterGroupPage />} />
             <Route path="/accounts" element={<Accounts />} />
+            {profile.role === 'admin' && <Route path="/hierarchy" element={<Hierarchy />} />}
             {profile.role === 'admin' && <Route path="/settings" element={<Settings />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
