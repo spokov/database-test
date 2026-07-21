@@ -12,7 +12,7 @@ export default function ParametersTable({
   onImportRows,
   exportFileName,
   clientName,
-  clientAge,
+  clientBirthDate,
   clientHeight,
   readOnly = false,
 }) {
@@ -104,7 +104,7 @@ export default function ParametersTable({
         onImportRows={onImportRows}
         exportFileName={exportFileName}
         clientName={clientName}
-        clientAge={clientAge}
+        clientBirthDate={clientBirthDate}
         clientHeight={clientHeight}
         readOnly={readOnly}
       />

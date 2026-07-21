@@ -217,7 +217,7 @@ export default function ParameterGroupPage() {
           onImportRows={handleImportRows}
           exportFileName={`${(client?.full_name || 'client').replace(/\s+/g, '-')}-${category}`}
           clientName={client?.full_name}
-          clientAge={age}
+          clientBirthDate={client?.birth_date}
           clientHeight={client?.height_cm}
           readOnly={readOnly}
         />

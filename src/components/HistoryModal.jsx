@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLanguage } from '../lib/i18n.jsx'
 import { toCSV, parseCSV } from '../lib/csv.js'
+import { calcAge } from '../lib/format.js'
 
 export default function HistoryModal({
   open,
@@ -12,7 +13,7 @@ export default function HistoryModal({
   onImportRows,
   exportFileName,
   clientName,
-  clientAge,
+  clientBirthDate,
   clientHeight,
   readOnly = false,
 }) {
@@ -174,17 +175,14 @@ export default function HistoryModal({
         )}
 
         <div className="printable-area overflow-auto p-4 sm:p-6">
-          {(clientName || clientAge != null || clientHeight) && (
+          {(clientName || clientHeight) && (
             <div className="mb-4">
               <p className="font-display font-semibold text-ink text-lg">{clientName}</p>
-              <p className="font-mono text-xs text-ink-soft">
-                {[
-                  clientAge != null ? `${clientAge}${t('ageSuffix')}` : null,
-                  clientHeight ? `${clientHeight} ${t('cmSuffix')}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
+              {clientHeight && (
+                <p className="font-mono text-xs text-ink-soft">
+                  {clientHeight} {t('cmSuffix')}
+                </p>
+              )}
             </div>
           )}
 
@@ -207,6 +205,22 @@ export default function HistoryModal({
                       </th>
                     ))}
                   </tr>
+                  {clientBirthDate && (
+                    <tr className="text-left border-b border-line bg-paper/60">
+                      <th className="py-1.5 pl-4 pr-4 font-mono text-xs text-ink-soft sticky left-0 bg-paper whitespace-nowrap font-normal">
+                        {t('ageAtDate')}
+                      </th>
+                      {allDates.map((date) => (
+                        <th
+                          key={date}
+                          className="py-1.5 px-3 font-mono text-xs text-ink-soft whitespace-nowrap font-normal"
+                        >
+                          {calcAge(clientBirthDate, date)}
+                          {t('ageSuffix')}
+                        </th>
+                      ))}
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {parameters.map((param) => {
@@ -321,7 +335,7 @@ function HistoryCell({ entry, onUpdate, onDelete, readOnly }) {
         type="button"
         aria-label={t('editAria')}
         onClick={() => setEditing(true)}
-        className="text-ink-soft/70 hover:text-ledger"
+        className="no-print text-ink-soft/70 hover:text-ledger"
       >
         ✎
       </button>
@@ -329,7 +343,7 @@ function HistoryCell({ entry, onUpdate, onDelete, readOnly }) {
         type="button"
         aria-label={t('deleteAria')}
         onClick={() => setConfirmDelete(true)}
-        className="text-ink-soft/70 hover:text-stamp"
+        className="no-print text-ink-soft/70 hover:text-stamp"
       >
         ×
       </button>
