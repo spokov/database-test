@@ -37,7 +37,7 @@ export default function Hierarchy() {
     const [{ data: profileData, error: profileError }, { data: clientData, error: clientError }] =
       await Promise.all([
         supabase.from('profiles').select('id, role, full_name, username, created_by'),
-        supabase.from('clients').select('id, full_name, owner_id, user_id'),
+        supabase.from('clients').select('id, full_name, phone, owner_id, user_id'),
       ])
     if (profileError || clientError) {
       setError((profileError || clientError).message)
@@ -108,9 +108,18 @@ export default function Hierarchy() {
 
   return (
     <div>
-      <p className="font-display text-xl font-semibold text-ink mt-2 mb-1">
-        {t('hierarchyTitle')}
-      </p>
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <p className="font-display text-xl font-semibold text-ink mt-2">
+          {t('hierarchyTitle')}
+        </p>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="no-print px-4 py-2 text-sm font-medium bg-ledger text-white rounded-card hover:bg-ledger-dark transition-colors whitespace-nowrap"
+        >
+          {t('printButton')}
+        </button>
+      </div>
       <p className="text-sm text-ink-soft mb-6">{t('hierarchyDescription')}</p>
 
       {error && <p className="text-sm text-stamp mb-4">{error}</p>}
@@ -120,7 +129,7 @@ export default function Hierarchy() {
           <p className="font-display text-ink-soft">{t('noStructureYet')}</p>
         </div>
       ) : (
-        <div className="bg-card border border-line rounded-card p-4 sm:p-6 overflow-x-auto">
+        <div className="printable-area print-flow bg-card border border-line rounded-card p-4 sm:p-6 overflow-x-auto">
           {roots.map((root) => (
             <TreeNode
               key={root.id}
@@ -151,7 +160,6 @@ export default function Hierarchy() {
 function TreeNode({ profile, childrenOf, clientsOf, t, onMove }) {
   const children = childrenOf.get(profile.id) || []
   const clients = clientsOf.get(profile.id) || []
-  const isRoot = !profile.created_by
 
   return (
     <div className="mb-1">
@@ -172,7 +180,7 @@ function TreeNode({ profile, childrenOf, clientsOf, t, onMove }) {
             }
             aria-label={t('moveNode')}
             title={t('moveNode')}
-            className="text-ink-soft/70 hover:text-ledger text-sm ml-1"
+            className="no-print text-ink-soft/70 hover:text-ledger text-sm ml-1"
           >
             ⇅
           </button>
@@ -200,6 +208,11 @@ function TreeNode({ profile, childrenOf, clientsOf, t, onMove }) {
                 <span className="text-base leading-none">🧍</span>
                 <span className="truncate">{c.full_name}</span>
               </Link>
+              {c.phone && (
+                <span className="font-mono text-xs text-ink-soft whitespace-nowrap">
+                  {c.phone}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() =>
@@ -207,7 +220,7 @@ function TreeNode({ profile, childrenOf, clientsOf, t, onMove }) {
                 }
                 aria-label={t('moveNode')}
                 title={t('moveNode')}
-                className="text-ink-soft/70 hover:text-ledger text-sm"
+                className="no-print text-ink-soft/70 hover:text-ledger text-sm"
               >
                 ⇅
               </button>

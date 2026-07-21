@@ -59,3 +59,33 @@ body {
   outline: 2px solid #2e4374;
   outline-offset: 2px;
 }
+
+/* Printing: show only the element marked .printable-area, in full (no
+   clipping from modal/scroll containers), everything else hidden. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area,
+  .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .print-flow {
+    position: static !important;
+    background: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

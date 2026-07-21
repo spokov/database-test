@@ -216,6 +216,9 @@ export default function ParameterGroupPage() {
           onDeleteEntry={(paramId, entryId) => handleDeleteEntry(paramId, entryId)}
           onImportRows={handleImportRows}
           exportFileName={`${(client?.full_name || 'client').replace(/\s+/g, '-')}-${category}`}
+          clientName={client?.full_name}
+          clientAge={age}
+          clientHeight={client?.height_cm}
           readOnly={readOnly}
         />
 

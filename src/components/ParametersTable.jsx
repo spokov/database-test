@@ -11,6 +11,9 @@ export default function ParametersTable({
   onDeleteEntry,
   onImportRows,
   exportFileName,
+  clientName,
+  clientAge,
+  clientHeight,
   readOnly = false,
 }) {
   const { t, formatDate } = useLanguage()
@@ -100,6 +103,9 @@ export default function ParametersTable({
         onDeleteEntry={onDeleteEntry}
         onImportRows={onImportRows}
         exportFileName={exportFileName}
+        clientName={clientName}
+        clientAge={clientAge}
+        clientHeight={clientHeight}
         readOnly={readOnly}
       />
     </div>

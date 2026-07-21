@@ -11,6 +11,9 @@ export default function HistoryModal({
   onDeleteEntry,
   onImportRows,
   exportFileName,
+  clientName,
+  clientAge,
+  clientHeight,
   readOnly = false,
 }) {
   const { t, formatDate } = useLanguage()
@@ -108,11 +111,18 @@ export default function HistoryModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
-      <div className="bg-card w-full sm:max-w-4xl sm:rounded-card border-t sm:border border-line max-h-[90vh] sm:max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-line flex-shrink-0 gap-2">
+    <div className="fixed inset-0 bg-ink/40 flex items-end sm:items-center justify-center z-50 sm:p-4 print-flow">
+      <div className="bg-card w-full sm:max-w-4xl sm:rounded-card border-t sm:border border-line max-h-[90vh] sm:max-h-[85vh] flex flex-col print-flow">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-line flex-shrink-0 gap-2 no-print">
           <p className="font-display font-semibold text-ink truncate">{t('historyTitle')}</p>
           <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="font-mono text-xs uppercase tracking-wide text-ink-soft hover:text-ledger px-2 py-1.5 rounded-card hover:bg-paper transition-colors whitespace-nowrap"
+            >
+              {t('printButton')}
+            </button>
             <button
               type="button"
               onClick={handleExport}
@@ -150,7 +160,7 @@ export default function HistoryModal({
 
         {importMessage && (
           <div
-            className={`px-4 sm:px-6 py-2 text-sm border-b border-line flex-shrink-0 ${
+            className={`no-print px-4 sm:px-6 py-2 text-sm border-b border-line flex-shrink-0 ${
               importMessage.type === 'error' ? 'text-stamp' : 'text-ledger'
             }`}
           >
@@ -163,7 +173,21 @@ export default function HistoryModal({
           </div>
         )}
 
-        <div className="overflow-auto p-4 sm:p-6">
+        <div className="printable-area overflow-auto p-4 sm:p-6">
+          {(clientName || clientAge != null || clientHeight) && (
+            <div className="mb-4">
+              <p className="font-display font-semibold text-ink text-lg">{clientName}</p>
+              <p className="font-mono text-xs text-ink-soft">
+                {[
+                  clientAge != null ? `${clientAge}${t('ageSuffix')}` : null,
+                  clientHeight ? `${clientHeight} ${t('cmSuffix')}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </div>
+          )}
+
           {allDates.length === 0 ? (
             <p className="text-sm text-ink-soft">{t('noValuesYet')}</p>
           ) : (
