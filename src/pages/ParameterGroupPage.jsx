@@ -221,6 +221,7 @@ export default function ParameterGroupPage() {
           clientHeight={client?.height_cm}
           clientGender={client?.gender}
           readOnly={readOnly}
+          dateInHeader={category === 'tanita'}
         />
 
         {!readOnly && (

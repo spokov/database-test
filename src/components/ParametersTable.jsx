@@ -15,10 +15,20 @@ export default function ParametersTable({
   clientBirthDate,
   clientHeight,
   clientGender,
+  dateInHeader = false,
   readOnly = false,
 }) {
   const { t, formatDate } = useLanguage()
   const [historyOpen, setHistoryOpen] = useState(false)
+
+  const latestOverallDate = dateInHeader
+    ? parameters.reduce((acc, p) => {
+        const latest = (entriesByParam[p.id] || [])[0]
+        if (!latest) return acc
+        if (!acc || latest.recorded_at > acc) return latest.recorded_at
+        return acc
+      }, null)
+    : null
 
   return (
     <div>
@@ -44,6 +54,11 @@ export default function ParametersTable({
               </th>
               <th className="py-2 pr-4 font-mono text-xs uppercase tracking-wide text-ink-soft">
                 {t('colLatest')}
+                {dateInHeader && latestOverallDate && (
+                  <span className="ml-2 normal-case font-normal text-ink-soft/70">
+                    ({formatDate(latestOverallDate)})
+                  </span>
+                )}
               </th>
               {!readOnly && (
                 <th className="py-2 pr-4 font-mono text-xs uppercase tracking-wide text-ink-soft">
@@ -66,12 +81,16 @@ export default function ParametersTable({
                   </td>
                   <td className="py-2.5 pr-4">
                     {latest ? (
-                      <>
+                      dateInHeader ? (
                         <span className="font-mono text-ledger">{latest.value}</span>
-                        <span className="text-xs text-ink-soft ml-2 whitespace-nowrap">
-                          {formatDate(latest.recorded_at)}
-                        </span>
-                      </>
+                      ) : (
+                        <>
+                          <span className="font-mono text-ledger">{latest.value}</span>
+                          <span className="text-xs text-ink-soft ml-2 whitespace-nowrap">
+                            {formatDate(latest.recorded_at)}
+                          </span>
+                        </>
+                      )
                     ) : (
                       <span className="text-ink-soft text-xs">—</span>
                     )}
