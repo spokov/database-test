@@ -37,16 +37,16 @@ create table if not exists parameters (
 insert into parameters (name, value_type, category, sort_order)
 select name, 'number', 'tanita', row_number() over ()
 from (values
-  ('Тегло (кг)'),
-  ('ИТМ (BMI)'),
-  ('Телесни мазнини (%)'),
-  ('Мускулна маса (%)'),
+  ('Тегло'),
+  ('BMI (%)'),
+  ('Мазнини (%)'),
+  ('Вътрешни мазнини'),
+  ('Мускулна маса (кг)'),
+  ('Индекс на тялото'),
   ('Костна маса (кг)'),
-  ('Вода в тялото (%)'),
-  ('Висцерални мазнини'),
   ('Базов метаболизъм (ккал)'),
   ('Метаболитна възраст'),
-  ('Физическа оценка')
+  ('Вода в тялото (%)')
 ) as v(name)
 where not exists (select 1 from parameters);
 
@@ -54,11 +54,14 @@ where not exists (select 1 from parameters);
 insert into parameters (name, value_type, category, sort_order)
 select name, 'number', 'body', row_number() over ()
 from (values
-  ('Обиколка гърди (см)'),
-  ('Обиколка талия (см)'),
-  ('Обиколка ханш (см)'),
-  ('Обиколка ръка (см)'),
-  ('Обиколка бедро (см)')
+  ('Обиколка Бюст (см)'),
+  ('Обиколка Ръка (см)'),
+  ('Обиколка Талия (см)'),
+  ('Обиколка Корем (см)'),
+  ('Обиколка Ханш (см)'),
+  ('Обиколка Бедро (см)'),
+  ('Обиколка Коляно (см)'),
+  ('Тегло (кг)')
 ) as v(name)
 where not exists (select 1 from parameters where category = 'body');
 

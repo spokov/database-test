@@ -14,6 +14,7 @@ export default function ParametersTable({
   clientName,
   clientBirthDate,
   clientHeight,
+  clientGender,
   readOnly = false,
 }) {
   const { t, formatDate } = useLanguage()
@@ -106,6 +107,7 @@ export default function ParametersTable({
         clientName={clientName}
         clientBirthDate={clientBirthDate}
         clientHeight={clientHeight}
+        clientGender={clientGender}
         readOnly={readOnly}
       />
     </div>

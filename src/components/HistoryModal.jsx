@@ -2,6 +2,14 @@ import { useRef, useState } from 'react'
 import { useLanguage } from '../lib/i18n.jsx'
 import { toCSV, parseCSV } from '../lib/csv.js'
 import { calcAge } from '../lib/format.js'
+import { classifyFatPercent, isFatParameterName } from '../lib/fatReference.js'
+
+const FAT_COLOR_CLASSES = {
+  excellent: 'text-emerald-700',
+  good: 'text-sky-600',
+  average: 'text-amber-600',
+  danger: 'text-red-700 font-bold',
+}
 
 export default function HistoryModal({
   open,
@@ -15,6 +23,7 @@ export default function HistoryModal({
   clientName,
   clientBirthDate,
   clientHeight,
+  clientGender,
   readOnly = false,
 }) {
   const { t, formatDate } = useLanguage()
@@ -186,6 +195,15 @@ export default function HistoryModal({
             </div>
           )}
 
+          {parameters.some((p) => isFatParameterName(p.name)) && (
+            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono">
+              <LegendDot className="bg-emerald-600" label={t('fatExcellent')} />
+              <LegendDot className="bg-sky-500" label={t('fatGood')} />
+              <LegendDot className="bg-amber-500" label={t('fatAverage')} />
+              <LegendDot className="bg-red-600" label={t('fatDanger')} bold />
+            </div>
+          )}
+
           {allDates.length === 0 ? (
             <p className="text-sm text-ink-soft">{t('noValuesYet')}</p>
           ) : (
@@ -229,6 +247,7 @@ export default function HistoryModal({
                     for (const e of entries) {
                       if (!byDate[e.recorded_at]) byDate[e.recorded_at] = e
                     }
+                    const isFat = isFatParameterName(param.name)
                     return (
                       <tr key={param.id} className="border-b border-line/60 last:border-0">
                         <td className="py-2 pl-4 pr-4 font-display font-medium text-ink sticky left-0 bg-card whitespace-nowrap">
@@ -236,6 +255,16 @@ export default function HistoryModal({
                         </td>
                         {allDates.map((date) => {
                           const entry = byDate[date]
+                          const colorClass =
+                            isFat && entry
+                              ? FAT_COLOR_CLASSES[
+                                  classifyFatPercent(
+                                    entry.value,
+                                    clientGender,
+                                    calcAge(clientBirthDate, date)
+                                  )
+                                ]
+                              : undefined
                           return (
                             <td key={date} className="py-2 px-3 text-center">
                               {entry ? (
@@ -244,6 +273,7 @@ export default function HistoryModal({
                                   onUpdate={(value) => onUpdateEntry(param.id, entry.id, value)}
                                   onDelete={() => onDeleteEntry(param.id, entry.id)}
                                   readOnly={readOnly}
+                                  valueClassName={colorClass}
                                 />
                               ) : (
                                 <span className="text-ink-soft/40" title={t('noValueForDate')}>
@@ -266,14 +296,23 @@ export default function HistoryModal({
   )
 }
 
-function HistoryCell({ entry, onUpdate, onDelete, readOnly }) {
+function LegendDot({ className, label, bold }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-ink-soft">
+      <span className={`w-2.5 h-2.5 rounded-full ${className}`} />
+      <span className={bold ? 'font-bold' : ''}>{label}</span>
+    </span>
+  )
+}
+
+function HistoryCell({ entry, onUpdate, onDelete, readOnly, valueClassName }) {
   const { t } = useLanguage()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(entry.value)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   if (readOnly) {
-    return <span className="font-mono text-ink">{entry.value}</span>
+    return <span className={`font-mono text-ink ${valueClassName || ''}`}>{entry.value}</span>
   }
 
   async function save() {
@@ -330,7 +369,7 @@ function HistoryCell({ entry, onUpdate, onDelete, readOnly }) {
 
   return (
     <span className="inline-flex items-center gap-1">
-      <span className="font-mono text-ink">{entry.value}</span>
+      <span className={`font-mono text-ink ${valueClassName || ''}`}>{entry.value}</span>
       <button
         type="button"
         aria-label={t('editAria')}

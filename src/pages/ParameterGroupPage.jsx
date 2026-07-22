@@ -39,7 +39,7 @@ export default function ParameterGroupPage() {
     setLoading(true)
     const [{ data: clientData, error: clientError }, { data: paramData, error: paramError }] =
       await Promise.all([
-        supabase.from('clients').select('full_name, birth_date, height_cm').eq('id', id).single(),
+        supabase.from('clients').select('full_name, birth_date, height_cm, gender').eq('id', id).single(),
         supabase
           .from('parameters')
           .select('*')
@@ -219,6 +219,7 @@ export default function ParameterGroupPage() {
           clientName={client?.full_name}
           clientBirthDate={client?.birth_date}
           clientHeight={client?.height_cm}
+          clientGender={client?.gender}
           readOnly={readOnly}
         />
 
